@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+
+<launch>
+	<!-- This is a comment -->
+     <include file="$(find zed_wrapper)/launch/zed2.launch" />
+     <node pkg="dl_control" name="fake_arm_ctrl" type="fake_arm_ctrl.py" output="screen"/>
+ 
+     <node pkg="dl_control" name="image_to_dnn" type="image_to_dnn.py" output="screen"/>
+
+     <node pkg="dl_control" name="seg_to_coordinates" type="seg_to_coordinates.py" output="screen"/>
+     <!-- <node pkg="dl_control" name="imu_subscriber" type="imu_subscriber.py" output="screen"/>-->
+    
+</launch>
