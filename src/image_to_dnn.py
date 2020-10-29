@@ -39,8 +39,13 @@ def paint(pic):
     pts = np.array([[25, 70], [25, 160],  
                 [110, 200], [200, 160],  
                 [200, 70], [110, 20]], 
-               np.int32) 
-  
+               np.int32)
+
+    cx = 640 + 200
+    cy = 360 - 200 
+    center_coordinates = (cx, cy)
+    radius = 20
+    
     pts = pts.reshape((-1, 1, 2)) 
   
     isClosed = True
@@ -48,21 +53,21 @@ def paint(pic):
     color = (255, 0, 0) 
 
     thickness = 2
+    image = cv2.circle(pic, center_coordinates, radius, color, thickness)
 
-    image = cv2.polylines(pic, [pts],  
-                      isClosed, color, thickness) 
+    #image = cv2.polylines(pic, [pts], isClosed, color, thickness) 
     return image, pts
 
 def dnn(pic_data):
     #print("doing some nasty stuff to the picture data") 
-    rospy.loginfo('image_to_dnn -> pic_data is extracting segmentations')
+    #rospy.loginfo('image_to_dnn -> pic_data is extracting segmentations')
     
     bridge = CvBridge()
     cv_image = bridge.imgmsg_to_cv2(pic_data, "bgr8")
 
     painted, pts = paint(cv_image)
     cv2.imshow("Image window", painted)
-    cv2.waitKey(3)
+    cv2.waitKey(1)
 
     ## TODO add the actual do_something function
     segm_info = [24.5, 1003, -0.5]
@@ -72,7 +77,7 @@ def dnn(pic_data):
 
 def callback(data):
     #print('-----------------------------Starting hearing this -----------------------------')
-    rospy.loginfo('image_to_dnn -> image callback heard encoding: %s ', data.encoding)
+    #rospy.loginfo('image_to_dnn -> image callback heard encoding: %s ', data.encoding)
     image_pub = rospy.Publisher("image_topic",Image, queue_size=1)
     segm_pub = rospy.Publisher("segmented_area", Float32MultiArray, queue_size=10)
 
@@ -97,7 +102,7 @@ def callback(data):
      
 
 def callback_bool(data):
-    rospy.loginfo('image_to_dnn -> arm_BP callback heard:  %s ', data.data)
+    #rospy.loginfo('image_to_dnn -> arm_BP callback heard:  %s ', data.data)
 
 
     global right_pos

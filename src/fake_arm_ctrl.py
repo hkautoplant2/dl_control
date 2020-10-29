@@ -9,7 +9,8 @@ from std_msgs.msg import Bool
 import time
 
 def callback(data):
-    rospy.loginfo('fake_arm_ctrl -> coord_3D callback heard coordinates: %s ', data.data)
+    #rospy.loginfo('fake_arm_ctrl -> coord_3D callback heard coordinates: %s ', data.data)
+    x=1
 
 
 def fake_arm():

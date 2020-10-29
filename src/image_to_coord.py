@@ -2,12 +2,13 @@
 
 
 ## Description:
-# This node get_image subscribes to the topics arm_BP and one of the image topics from ZED. When the arm_BP callback signals True, the image callback goes into the function "do_something".
+
 
 import roslib
 roslib.load_manifest('dl_control')
 import rospy
 import cv2
+import math
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32MultiArray
@@ -22,8 +23,10 @@ import struct
 from sensor_msgs import point_cloud2
 
 
+
 right_pos = False
 
+# Test reshape for our data
     #testlist = [[1, 2, 3], [2, 3, 4], [3, 4, 5], [1, 1, 1], [2,2,2], [3,3,3]]
     #testarr = np.array(testlist).reshape((2, 3, 3))
     #print('testlist: ', testlist)
@@ -54,32 +57,60 @@ class Server:
         self.imagemsg = None
         self.pointcloudmsg = None
         self.armposmsg = None
+        self.pixelpair = None
+        self.segmentations = None
 
     def image_callback(self, msg):
         #rospy.loginfo('image_to_coord -> image callback heard encoding: %s ', msg.encoding)
         self.imagemsg = msg
-        
-        self.compute()
+        ## TODO Add dnn which outputs the segmentation
+        self.segmentations = self.dnn()
+        #self.compute()
 
     def pointcloud_callback(self, msg):
         #rospy.loginfo('image_to_coord -> pointcloud callback heard is_dense: %s  ', msg.is_dense)
         self.pointcloudmsg = msg
 
-        self.compute()
+        #self.compute()
 
     def armposmsg_callback(self, msg):
-        rospy.loginfo('image_to_coord -> arm_BP callback heard:  %s ', msg.data)
+        #rospy.loginfo('image_to_coord -> arm_BP callback heard:  %s ', msg.data)
         self.armposmsg = msg
         
-        self.compute()
+        #self.compute()
         
 
     def compute(self):
         if not (self.imagemsg == None and self.pointcloudmsg == None and self.armposmsg == None):
             if self.armposmsg.data == True:
-                point_cloud = gen_points(self.pointcloudmsg)
-               
-                print point_cloud[600:605, 300:305]
+                point_cloud = gen_points(self.pointcloudmsg)     
+                pixel_matrix = point_cloud[x, y]
+                #print pixel_matrix
+                ## TODO 
+
+    def dnn(self):
+        #print('DNN throughput')
+        return [1, 2, 3]
+ 
+
+    def depth_callback(self, msg):
+        #rospy.loginfo('image_to_coord -> pointcloud callback heard is_dense: %s  ', msg.data)
+        cx = msg.width / 2
+        cy = msg.height / 2
+        f = 500 * 0.004 # focal length mm HD720
+        #K = [[f,0,cx],[0.f,cy],[0,0,1]] # Intrinsic matrix
+        x = cx+200 
+        y = cy -200
+        bridge = CvBridge()
+        cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding='32FC1')
+        if math.isnan(cv_image[y, x]) == False and math.isinf(cv_image[y, x]) == False:
+            Zc = cv_image[y, x]
+            Xc = (x - cx) * Zc / (f * 1000) 
+            Yc = (y - cy) * Zc / (f * 1000)
+            print(Xc,Yc,Zc)
+          
+         
+        
 
 
 def main():
@@ -91,6 +122,8 @@ def main():
     rospy.Subscriber('/zed2/zed_node/left/image_rect_color',Image, server.image_callback)
     rospy.Subscriber('/arm_BP', Bool, server.armposmsg_callback)
     rospy.Subscriber('/zed2/zed_node/point_cloud/cloud_registered', PointCloud2, server.pointcloud_callback)
+
+    rospy.Subscriber('/zed2/zed_node/depth/depth_registered',Image, server.depth_callback)
 
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()

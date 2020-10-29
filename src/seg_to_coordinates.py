@@ -13,7 +13,7 @@ from sensor_msgs.msg import Image
 
 def get_pixel_pair(seg_data):
     #print("doing some nasty stuff to the picture data") 
-    rospy.loginfo('seg_to_coordinates -> get pixel pair is working on data')
+    #rospy.loginfo('seg_to_coordinates -> get pixel pair is working on data')
     pixels = [300, 500]
     
     ## TODO add the actual function for getting pixel pairs out of segmented area
@@ -22,14 +22,14 @@ def get_pixel_pair(seg_data):
 
 def get_3d_coord(pixels):
     #print('getting coordinates in 3D')
-    rospy.loginfo('seg_to_coordinates -> get_3d_coord is working on pixels: %s', pixels)
+    #rospy.loginfo('seg_to_coordinates -> get_3d_coord is working on pixels: %s', pixels)
     return [1, 2, 3]
 
 
 
 def callback(data):
     
-    rospy.loginfo('seg_to_coordinates -> segmented_area callback heard: %s ', data.data)
+    #rospy.loginfo('seg_to_coordinates -> segmented_area callback heard: %s ', data.data)
     # http://docs.ros.org/api/sensor_msgs/html/msg/PointCloud2.html
     #print(data.data)
     #data_unpacked = struct.unpack('<I', data.data[0])
