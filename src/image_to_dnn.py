@@ -41,9 +41,12 @@ def paint(pic):
                 [200, 70], [110, 20]], 
                np.int32)
 
-    cx = 640 + 200
-    cy = 360 - 200 
+    cx = 640
+    cy = 360
+    px = 640 - 200
+    py = 360 - 200
     center_coordinates = (cx, cy)
+    pixel_coordinates = (px, py)
     radius = 20
     
     pts = pts.reshape((-1, 1, 2)) 
@@ -51,9 +54,11 @@ def paint(pic):
     isClosed = True
 
     color = (255, 0, 0) 
+    colorcenter = (0, 255, 0)
 
     thickness = 2
-    image = cv2.circle(pic, center_coordinates, radius, color, thickness)
+    image = cv2.circle(pic, center_coordinates, radius, colorcenter, thickness)
+    image = cv2.circle(image, pixel_coordinates, radius, color, thickness)
 
     #image = cv2.polylines(pic, [pts], isClosed, color, thickness) 
     return image, pts

@@ -59,6 +59,7 @@ class Server:
         self.armposmsg = None
         self.pixelpair = None
         self.segmentations = None
+        self.coord_3D = None
 
     def image_callback(self, msg):
         #rospy.loginfo('image_to_coord -> image callback heard encoding: %s ', msg.encoding)
@@ -97,18 +98,18 @@ class Server:
         #rospy.loginfo('image_to_coord -> pointcloud callback heard is_dense: %s  ', msg.data)
         cx = msg.width / 2
         cy = msg.height / 2
-        f = 500 * 0.004 # focal length mm HD720
-        #K = [[f,0,cx],[0.f,cy],[0,0,1]] # Intrinsic matrix
-        x = cx+200 
+        f = 500 # focal length in pixels HD720 resolution
+        b = 0.12 # baseline
+        x = cx-200 
         y = cy -200
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(msg, desired_encoding='32FC1')
         if math.isnan(cv_image[y, x]) == False and math.isinf(cv_image[y, x]) == False:
-            Zc = cv_image[y, x]
-            Xc = (x - cx) * Zc / (f * 1000) 
-            Yc = (y - cy) * Zc / (f * 1000)
-            print(Xc,Yc,Zc)
-          
+            Zp = cv_image[y, x]
+            Yp = (y - cy) * Zp / f 
+            Xp = (x - cx) * Zp / f
+            print('point', Xp, Yp, Zp)
+            self.coord_3D = (Xp, Yp, Zp)
          
         
 
