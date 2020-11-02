@@ -20,22 +20,28 @@ from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Bool
 from cv_bridge import CvBridge
 
-from dl_control.srv import*
+from dl_control.srv import *
 
-def handle_get_3D_coordinates(req):
-    x=1
-    y=5
-    z=7
+
+
+def handle_add_two_ints(req):
+    #print("Returning [%s + %s = %s]"%(req.a, req.b, (req.a + req.b)))
+    x=10
+    y=20
+    z=30
     
     return AddTwoIntsResponse(x,y,z)
 
 def add_two_ints_server():
-    rospy.init_node('get_coordinates')
-    s = rospy.Service('get_coordinates', get_3D_coordinates, handle_get_3D_coordinates)
-    print("Ready")
+    rospy.init_node('add_two_ints_server')
+    s = rospy.Service('add_two_ints', AddTwoInts, handle_add_two_ints)
+    print("Ready to add two ints.")
     rospy.spin()
+    
 
 def main():
+    #get_3D_coordinates_server()
+    add_two_ints_server()
     
  
 if __name__ == '__main__':
