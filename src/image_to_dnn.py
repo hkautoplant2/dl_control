@@ -7,21 +7,19 @@
 import roslib
 roslib.load_manifest('dl_control')
 import rospy
+import time
+import os
+import numpy as np
 import cv2
-#import pyzed.sl as sl
+
+from std_msgs.msg import Bool
+from cv_bridge import CvBridge
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from std_msgs.msg import Float32MultiArray
-import time
-from std_msgs.msg import Bool
-from cv_bridge import CvBridge
-from PIL import Image as img
-import os
-import numpy as np
-import struct
 
 
-right_pos = False
+
 
 ## Data structure for Image:
 # type(data) = class sensor_msgs.msg._Image.Image
@@ -32,6 +30,8 @@ right_pos = False
 # data.is_bigendian 0 (False)
 # data.step 5120 (uint32)
 # data.data: len=3 686 400, type='bytes'
+
+right_pos = False
 
 def paint(pic):
   
@@ -81,24 +81,20 @@ def dnn(pic_data):
 
 
 def callback(data):
-    #print('-----------------------------Starting hearing this -----------------------------')
-    #rospy.loginfo('image_to_dnn -> image callback heard encoding: %s ', data.encoding)
-    image_pub = rospy.Publisher("image_topic",Image, queue_size=1)
-    segm_pub = rospy.Publisher("segmented_area", Float32MultiArray, queue_size=10)
 
-    global right_pos
+    #rospy.loginfo('image_to_dnn -> image callback ')
+    segm_pub = rospy.Publisher("dnn_output", Float32MultiArray, queue_size=10)
+
+    #global right_pos
     
     if len(data.data)==3686400 and right_pos == True:
         #print('one frame captured')
-        #rospy.loginfo(rospy.get_caller_id()+' I heard \r\n %s ',data.header)
+            rospy.loginfo('image_to_dnn -> image callback, Right Pos and image use Neural Net')
         
-        while right_pos == True:
-            
+        #while right_pos == True:
+           
             segm = dnn(data)
-            #sega = np.array(segm, dtype=np.float32)
-            #segmap = map(tuple, segm)
-            #seg = tuple(segmap)
-            image_pub.publish(data)
+            
             time.sleep(1)
 	   
             segments = Float32MultiArray(data=segm)
@@ -107,7 +103,7 @@ def callback(data):
      
 
 def callback_bool(data):
-    #rospy.loginfo('image_to_dnn -> arm_BP callback heard:  %s ', data.data)
+    rospy.loginfo('image_to_dnn -> arm_BP callback heard:  %s ', data.data)
 
 
     global right_pos
@@ -122,9 +118,8 @@ def callback_bool(data):
 
 def main():
     
-    
-    
     rospy.init_node('image_to_dnn', anonymous=False)
+
     image_sub = rospy.Subscriber('/zed2/zed_node/left/image_rect_color',Image,callback)
     
     bp_sub = rospy.Subscriber("arm_BP", Bool, callback_bool)

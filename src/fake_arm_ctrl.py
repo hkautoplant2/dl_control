@@ -8,36 +8,58 @@ from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Bool
 import time
 
+class FakeArm:
+    def __init__(self):
+        self.dnn_done = False
+        self.is_in_BP = None
+        self.relative_coord = None
+        
+    def coordinate_callback(self, msg):
+        rospy.loginfo('fake_arm_ctrl -> coord_3D callback heard coordinates: %s ', msg.data)
+        self.relative_coord = msg.data
+
+    def visual_callback(self, msg):
+        rospy.loginfo('fake_arm_ctrl -> visual calculations done: %s ', msg.data)
+        self.dnn_done = msg.data
+
 def callback(data):
     #rospy.loginfo('fake_arm_ctrl -> coord_3D callback heard coordinates: %s ', data.data)
     x=1
 
+def callback_vis(data):
+    rospy.loginfo('fake_arm_ctrl -> visual_done: Neural network is done: %s ', data.data)
+    time.sleep(1)
+    
 
 def fake_arm():
-    sub_coord = rospy.Subscriber('coord_3D', Float32MultiArray, callback)
-    pub_BP = rospy.Publisher('arm_BP', Bool, queue_size=10)
-    ## TODO Change coord_3D to take an array instead of single float
     rospy.init_node('fake_arm_ctrl', anonymous=False)
-    rate = rospy.Rate(3) # Hz
-    i= 0
-    
+
+    fakearm = FakeArm()
+
+    rospy.Subscriber('/coord_3D', Float32MultiArray, fakearm.coordinate_callback)
+    rospy.Subscriber('/visual_done', Bool, fakearm.visual_callback)
+
+    pub_BP = rospy.Publisher('/arm_BP', Bool, queue_size=1)
+    pub_vis = rospy.Publisher('/visual_done', Bool, queue_size=1)
+
+    pub_BP.publish(False)
+    rospy.loginfo('----------fake_arm_ctrl -> time control first False-----------')
+    time.sleep(10)
+
     while not rospy.is_shutdown():
         
-	if i == 18:
-	   rospy.loginfo('right position')
-	   pub_BP.publish(True)
-           time.sleep(10)
-	   rate.sleep()
-           i=0
-        else:  
-           #hello_str = "hello world %s" % rospy.get_time()
-           rospy.loginfo('moving')
-           #pub_coord.publish(67)
-	   pub_BP.publish(False)
-           rate.sleep()
         
-        i=i+1
-
+        pub_BP.publish(True)
+        time.sleep(10)
+        if fakearm.dnn_done == True:
+            rospy.loginfo('fake_arm_ctrl -> Calculations done, reset settings')
+            pub_vis.publish(False)
+            pub_BP.publish(False)
+            rospy.loginfo('fake_arm_ctrl -> MOVING ARM')
+            time.sleep(10)
+    
+   
+   #rospy.spin()
 
 
 if __name__ == '__main__':
