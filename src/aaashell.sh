@@ -12,3 +12,7 @@ scp /home/jetson/Downloads/test_image2.png autoplant2@192.168.1.102:~/
 ssh autoplant2@192.168.1.102 'docker cp test_image2.png pedantic_chatelet:/workspace/tlt-experiments/data/Test/images'
 
 ssh autoplant2@192.168.1.102 'docker exec -i e3a86180333e tlt-infer faster_rcnn -e /workspace/examples/faster_rcnn/specs/fastrcnn_retrain_pruned12.txt'
+
+ssh autoplant2@192.168.1.102 'docker cp pedantic_chatelet:/workspace/tlt-experiments/data/faster_rcnn/inference_results_imgs_retrain/test_image2.png ~/inference'
+
+ssh autoplant2@192.168.1.102 'docker cp pedantic_chatelet:/workspace/tlt-experiments/data/faster_rcnn/inference_dump_labels_retrain/test_image2.txt ~/inference'
