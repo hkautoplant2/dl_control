@@ -3,7 +3,7 @@ with open("test_image2.txt", "r") as f:  #The annotators file for the give image
 	for line in f:
 		words = line.split()
 		if words:
-			if words[0]=="stone":
+			if words[0]=="good_area":
 				x1=float(words[4])
 				y1=float(words[5])
 				x2=float(words[6])
