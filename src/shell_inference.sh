@@ -2,8 +2,6 @@
 # This is a comment!
 echo Start communicating to HOST	
 
-#Clean up inference result map on jetson
-rm ~/res_inf_jet/*
 
 #Copy zed image into host locally
 scp -r ~/run_inf_jet/* autoplant2@192.168.1.102:~/inference/run_inf_host
@@ -23,24 +21,6 @@ ssh autoplant2@192.168.1.102 'cp -r ~/inference/res_inf_host/. ~/inference/log_i
 #Copy results from host to jetson map
 scp -r autoplant2@192.168.1.102:~/inference/res_inf_host/* ~/res_inf_jet
 
-#Clean run inference folder for network
-ssh autoplant2@192.168.1.102 'docker exec -i e3a86180333e rm -rf run_inf_cont'
-
-#Clean inference result map for network
-ssh autoplant2@192.168.1.102 'docker exec -i e3a86180333e rm -rf res_inf_cont'
-
-#Create the removed directories again (ugly solution)
-ssh autoplant2@192.168.1.102 'docker exec -i e3a86180333e mkdir run_inf_cont'
-ssh autoplant2@192.168.1.102 'docker exec -i e3a86180333e mkdir res_inf_cont'
-
-#Clean up host run inference map
-ssh autoplant2@192.168.1.102 'rm inference/run_inf_host/*'
-
-#Clean up host resulting inference map
-ssh autoplant2@192.168.1.102 'rm inference/res_inf_host/*'
-
-#Clean up jetsons run inference maps
-rm ~/run_inf_jet/*
-
+echo Inference has been run on network
 
 
