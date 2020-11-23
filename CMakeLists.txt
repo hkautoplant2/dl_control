@@ -82,6 +82,7 @@ add_service_files(
 generate_messages(
   DEPENDENCIES
   std_msgs
+  sensor_msgs
 )
 
 ################################################
@@ -177,6 +178,7 @@ include_directories(
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
   src/add_two_ints_server.py
+  src/get_3D_coordinates_server.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 
