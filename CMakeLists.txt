@@ -67,8 +67,6 @@ find_package(catkin REQUIRED COMPONENTS
 ## Generate services in the 'srv' folder
 add_service_files(
   FILES
-  GetCoordFromDnn.srv
-  AddTwoInts.srv
 )
 
 ## Generate actions in the 'action' folder
@@ -177,8 +175,6 @@ include_directories(
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 catkin_install_python(PROGRAMS
-  src/add_two_ints_server.py
-  src/get_3D_coordinates_server.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

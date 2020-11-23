@@ -16,15 +16,12 @@ import subprocess
 import glob
 import math
 
-from sensor_msgs.msg import PointCloud2
 from sensor_msgs.msg import Imu
 from std_msgs.msg import String
 from sensor_msgs.msg import Image
-from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Bool
 from cv_bridge import CvBridge
 
-from dl_control.srv import *
 
 right_pos = False
 dnn = False
