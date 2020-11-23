@@ -3,7 +3,7 @@
 <launch>
 	<!-- This is a comment -->
      <include file="$(find zed_wrapper)/launch/zed2.launch" />
-     <node pkg="dl_control" name="fake_arm" type="fake_arm.py" output="screen"/>
+     <!--<node pkg="dl_control" name="fake_arm" type="fake_arm.py" output="screen"/>-->
  
      <node pkg="dl_control" name="dnn_master_node" type="dnn_master_node.py" output="screen"/>
 

@@ -21,13 +21,19 @@ from std_msgs.msg import String
 from sensor_msgs.msg import Image
 from std_msgs.msg import Bool
 from cv_bridge import CvBridge
+from std_msgs.msg import Float32MultiArray
 
+from dl_control.srv import*
 
 right_pos = False
 dnn = False
 retrieve_depth = False
 xc_pix = None
 yc_pix = None
+depth_done = False
+X = 0
+Y = 0
+Z = 0
 
 def run_DNN(pic_data):
         p2 = subprocess.Popen(["bash", "/home/jetson/catkin_ws/src/dl_control/src/shell_remove.sh"])
@@ -82,20 +88,8 @@ def read_file():
 
 
 
-
-def add_two_ints_client(req):
-    rospy.wait_for_service('add_two_ints')
-    try:
-        add_two_ints = rospy.ServiceProxy('add_two_ints', AddTwoInts)
-        resp1 = add_two_ints(req)
-        return resp1.X, resp1.Y, resp1.Z
-    except rospy.ServiceException as e:
-        print("Service call failed: %s"%e)
-
-
 def callback(data):
-    global right_pos, retrieve_depth, xc_pix, yc_pix, dnn  
-    
+    global right_pos, retrieve_depth, xc_pix, yc_pix, dnn, depth_done  
     time.sleep(0.5)
     if len(data.data)==3686400 and right_pos == True and dnn == True:
         print('in callback')
@@ -110,8 +104,9 @@ def callback(data):
         #time.sleep(1)
 
 def depth_callback(data):
-    global right_pos, retrieve_depth, xc_pix, yc_pix 
-    pub_BP = rospy.Publisher('arm_BP', Bool, queue_size=1)
+    global right_pos, retrieve_depth, xc_pix, yc_pix, depth_done, X, Y, Z 
+    
+    pub_coord = rospy.Publisher('coord', Float32MultiArray, queue_size=1)
     if retrieve_depth == True:
         retrieve_depth = False
         cx = data.width / 2
@@ -129,8 +124,15 @@ def depth_callback(data):
             Yp = (y - cy) * Zp / f 
             Xp = (x - cx) * Zp / f
             print('point', Xp, Yp, Zp)
-        pub_BP.publish(False)
-        right_pos =False
+            X = Xp
+            Y= Yp
+            Z=Zp
+            coord_fma = Float32MultiArray(data=[Xp, Yp, Zp])
+            pub_coord.publish(coord_fma)
+            depth_done = True
+            
+        
+        #right_pos =False
 
 def callback_bool(data):
     #rospy.loginfo('image_to_dnn -> arm_BP callback heard:  %s ', data.data)
@@ -154,7 +156,7 @@ def main():
 
     image_sub = rospy.Subscriber('/zed2/zed_node/left/image_rect_color',Image,callback)
     bp_sub = rospy.Subscriber("arm_BP", Bool, callback_bool)
-   
+    pub_BP = rospy.Publisher('arm_BP', Bool, queue_size=1)
     depth_sub = rospy.Subscriber('/zed2/zed_node/depth/depth_registered',Image, depth_callback)
 
 

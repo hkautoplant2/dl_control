@@ -22,38 +22,31 @@ from cv_bridge import CvBridge
 
 from dl_control.srv import*
 
-def FKIK_service(Target):
-    return True
-
-def DNN_service(basepos):
-    Target = basepos
-    return Target
-
 
 def main():
-    
     rospy.init_node('master_node', anonymous=False)
+    rospy.wait_for_service('go_to_target')
+    rospy.wait_for_service('get_pos')
+
     A = [1.5, 1.5, 1.5]
     B = [1.1, 1.1, 1.1]
-    BP = [A, B]
-    i = 0
-    while i < 10:
-        i = i+1
-        BP_A = FKIK_service(A)
-        if BP_A == True:
-            T_A = DNN_service(A)
-            A_G = FKIK_service(T_A)
-            print('Planting at A successful')
-        else:
-            print('FKIK BP-A not successful')
 
-        BP_B = FKIK_service(B)
-        if BP_B == True:
-            T_B = DNN_service(B)
-            B_G = FKIK_service(T_B)
-            print('Planting at B successful')    
-        else:
-            print('FKIK BP-B not successful')
+    i = 0
+
+    if i == 0:
+        getpos1 = rospy.ServiceProxy("get_pos",GetPos)
+        current_pos = getpos1()
+        if current_pos == A:
+            arm_BP.publish(True)
+        else: 
+            goto = rospy.ServiceProxy('go_to_target',GoToTarget)
+            response = goto(A[0], A[1], A[2])
+            arm_BP.publish(True)
+
+
+
+
+
 
     rospy.spin()
 

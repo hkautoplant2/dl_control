@@ -22,12 +22,18 @@ def callback_bool(data):
         print('Done waiting, set position to true')
         pub_BP2.publish(True)
 
+def callback(data):
+    print('callback real coordinates from dnn')
+    pub_BP = rospy.Publisher('arm_BP', Bool, queue_size=1)
+    
+    pub_BP.publish(False)
 
 def fake_arm():
  
     pub_BP = rospy.Publisher('arm_BP', Bool, queue_size=1)
     bp_sub = rospy.Subscriber("arm_BP", Bool, callback_bool)
-   
+    image_sub = rospy.Subscriber('coord',Float32MultiArray,callback)
+
     rospy.init_node('fake_arm', anonymous=False)
 
     print('Starting False position testarm')
