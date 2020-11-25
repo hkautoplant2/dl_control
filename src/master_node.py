@@ -62,10 +62,11 @@ def main():
     pub_BP.publish(False)
     print('Starting sequence, publish False')
     time.sleep(3)
-    print('publish True')
-    pub_BP.publish(True)
+    
 
     '''
+    print('publish True')
+    pub_BP.publish(True)
     while not rospy.is_shutdown():
         print('arm.coord_done', arm.coord_done)
         if arm.coord_done == True:

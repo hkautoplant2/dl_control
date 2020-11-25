@@ -74,7 +74,7 @@ def create_JointMsg(angles):
 
 # recursiv function, publiosh as long as the stop_publishing_joints is false
 def publish_msg2(msg,pub):
-    print()
+    
     if stop_publishing_joints == True:
         #print("stop publishing joints")
         return
@@ -94,21 +94,23 @@ def read_sensor():
         rospy.sleep(0.1)
         #print("reading sensor")
         read_sensor()
+
 def convert_gamma(gamma):
-    gamma = gamma + math.pi
+    gamma = gamma + math.pi/2 - 12*math.pi/180
     l1 = 157
     l2 = 202
     l3 = 202
     l4 = 185
-    try:
-        l5 = math.sqrt(l1**2+l2**2-2*l2*l1*math.cos(gamma))
-        A = math.acos((l1**2+l5**2-l4**2)/(2*l1*l5))
-        B = math.acos((l2**2+l5**2-l3**2)/(2*l2*l5))
-        gamma = A + B
-        return gamma
-    except:
-        #print("convert gamma failed")
-        return gamma
+    l5 = math.sqrt(l1**2+l4**2-2*l1*l4*math.cos(gamma))
+    
+    A1_1 = (l1**2+l5**2-l4**2)/(2*l1*l5)
+    B1_1 = (l2**2+l5**2-l3**2)/(2*l2*l5)
+
+    A = math.acos(A1_1)
+    B = math.acos(B1_1)
+
+    gamma = A + B
+    return gamma
 
 # function takes a pos and calculated trough IK the required angles
 # and publish it to the UC
@@ -143,7 +145,7 @@ def go_to_target(req):
 
 
 
-    beta_limit = 180
+    beta_limit = 160
     alpha_limit =155 # degress
 
 
@@ -169,7 +171,7 @@ def go_to_target(req):
 
     alpha = math.pi/2 + alpha
     beta = beta
-    gamma = math.pi - ((alpha-math.pi/2) + beta)
+    gamma = math.pi/2 - (math.pi - ((alpha-math.pi/2)+beta))
     gamma = convert_gamma(gamma);
 
     #print("goal angles=",[omega,alpha,beta,gamma])
@@ -262,7 +264,7 @@ def FK_cb(msg):
     alpha1 = math.acos((A**2 + dz**2 - B**2)/(2*A*dz))
     alpha2 = alpha - math.pi/2 - alpha1
 
-    z = dz*math.sin(alpha2)+L
+    z = dz*math.sin(alpha2)+L - 210  # 210 is the hegith from the bolt to the camera
     d = dz*math.cos(alpha2)
     x = math.sqrt(d**2/(math.tan(omega)**2+1))
     y = math.sqrt(d**2-x**2)
@@ -282,7 +284,7 @@ def FK_cb(msg):
 
     # publish to Rviz
     """
-    joint_states_msg = JointState()
+    joint_states_msg = JointState()tlt-infer faster_rcnn -e /workspace/examples/faster_rcnn/specs/fastrcnn_retrain_pruned12.txt
     joint_states_msg.name = ['2_base_1_rot_base',"3_rot_base_arm1","4_arm1_arm2","5_arm2_kran",]
     joint_states_msg.position = [omega,alpha,beta,gamma]
     joint_states_msg.header.frame_id = "world"

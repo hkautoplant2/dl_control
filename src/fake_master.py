@@ -14,9 +14,7 @@ def main():
     rospy.init_node('fake_master', anonymous=False)
     print('Start')
 
-    x_target = 1800
-    y_target= 1
-    z_target = 500
+   
     rospy.wait_for_service('go_to_target')
     rospy.wait_for_service('get_pos')
     while not rospy.is_shutdown():
@@ -25,8 +23,9 @@ def main():
         y_target = input("")
         z_target = input("")
 
-        server1 = rospy.ServiceProxy("get_pos",GetPos)
-        print("current_pos=",server1())
+        #server1 = rospy.ServiceProxy("get_pos",GetPos)
+        
+	#print("current_pos=",server1())
         
         server = rospy.ServiceProxy('go_to_target',GoToTarget)
         response = server(x_target,y_target,z_target)
