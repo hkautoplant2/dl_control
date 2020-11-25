@@ -130,7 +130,7 @@ def go_to_target(req):
 
     x = req.x
     y = req.y
-    z = req.z
+    z = req.z 
 
     # setting parameters
     A = 1590
@@ -264,7 +264,7 @@ def FK_cb(msg):
     alpha1 = math.acos((A**2 + dz**2 - B**2)/(2*A*dz))
     alpha2 = alpha - math.pi/2 - alpha1
 
-    z = dz*math.sin(alpha2)+L - 210  # 210 is the hegith from the bolt to the camera
+    z = dz*math.sin(alpha2)+L 
     d = dz*math.cos(alpha2)
     x = math.sqrt(d**2/(math.tan(omega)**2+1))
     y = math.sqrt(d**2-x**2)

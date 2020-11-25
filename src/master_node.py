@@ -38,6 +38,11 @@ class Arm:
             print('base position is True')
         else:
             print('base position is False')
+def transform(current, camera):
+    X = current[0] + camera[1]*10
+    Y = 1 #TODO
+    Z = current[2] - camera[2]*10 + 500
+    return X, Y, Z
 
 def main():
     rospy.init_node('master_node', anonymous=False)
@@ -55,8 +60,8 @@ def main():
     rospy.Subscriber('/coord',Float32MultiArray,arm.coord_callback)
     rospy.Subscriber('/arm_BP', Bool, arm.bp_callback)
 
-    A = [2500, 1, 1000]
-    B = [2500, 1, 1000]
+    A = [2200, 1, 1000]
+    B = [2200, 1, 1000]
 
  
     pub_BP.publish(False)
@@ -80,7 +85,7 @@ def main():
     time.sleep(2)'''
 
     i = 0
-    '''
+    
     while not rospy.is_shutdown():
         if i == 0:
             response = goto(A[0], A[1], A[2])
@@ -88,8 +93,9 @@ def main():
             pub_BP.publish(True)
             if arm.coord_done == True:
                 arm.coord_done = False
-                print('Coordinates for spot received, moving there')
-                response = goto(arm.coord[0], arm.coord[1], arm.coord[2])
+                XA, YA, ZA = transform(A, arm.coord)
+                print('Coordinates for A spot received, moving to ', XA, YA, ZA)
+                response = goto(XA, YA, ZA)
                 i = 1
         if i == 1:
             response = goto(B[0], B[1], B[2])
@@ -97,10 +103,11 @@ def main():
             pub_BP.publish(True)
             if arm.coord_done == True:
                 arm.coord_done = False
-                print('Coordinates for spot received, moving there')
-                response = goto(arm.coord[0], arm.coord[1], arm.coord[2])
+                XB, YB, ZB = transform(B, arm.coord)
+                print('Coordinates for B spot received, moving to ', XB, YB, ZB)
+                response = goto(XB, YB, ZB)
                 i = 0
-        rate.sleep()'''
+        rate.sleep()
 
 
 
