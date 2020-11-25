@@ -118,7 +118,7 @@ def depth_callback(data):
       
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(data, desired_encoding='32FC1')
-        print('Is Nan: ', math.isnan(cv_image[y, x]))
+        print('Is Nan: ', math.isnan(cv_image[y, x]), math.isinf(cv_image[y, x]))
 
         if math.isnan(cv_image[y, x]) == False and math.isinf(cv_image[y, x]) == False:
             Zp = cv_image[y, x]

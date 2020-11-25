@@ -96,7 +96,7 @@ def read_sensor():
         read_sensor()
 
 def convert_gamma(gamma):
-    gamma = gamma + math.pi/2 - 12*math.pi/180
+    gamma = gamma + math.pi/2
     l1 = 157
     l2 = 202
     l3 = 202

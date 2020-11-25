@@ -38,15 +38,18 @@ class Arm:
             print('base position is True')
         else:
             print('base position is False')
+
+
 def transform(current, camera):
-    X = current[0] + camera[1]*10
+    X = current[0] - camera[2]*1000
     Y = 1 #TODO
-    Z = current[2] - camera[2]*10 + 500
+    Z = current[2] - camera[0]*1000 + 500
     return X, Y, Z
+
 
 def main():
     rospy.init_node('master_node', anonymous=False)
-    rate = rospy.Rate(0.5)
+    rate = rospy.Rate(0.03)
     rospy.wait_for_service('go_to_target')
     rospy.wait_for_service('get_pos')
 
@@ -60,7 +63,7 @@ def main():
     rospy.Subscriber('/coord',Float32MultiArray,arm.coord_callback)
     rospy.Subscriber('/arm_BP', Bool, arm.bp_callback)
 
-    A = [2200, 1, 1000]
+    A = [2200, 1, 1100]
     B = [2200, 1, 1000]
 
  
@@ -88,8 +91,9 @@ def main():
     
     while not rospy.is_shutdown():
         if i == 0:
+            
             response = goto(A[0], A[1], A[2])
-            print('publish True')
+            print('publish base position True')
             pub_BP.publish(True)
             if arm.coord_done == True:
                 arm.coord_done = False
@@ -98,8 +102,9 @@ def main():
                 response = goto(XA, YA, ZA)
                 i = 1
         if i == 1:
+            print('State 1 = B, moving to BP B')
             response = goto(B[0], B[1], B[2])
-            print('publish True')
+            print('publish base positio True')
             pub_BP.publish(True)
             if arm.coord_done == True:
                 arm.coord_done = False
