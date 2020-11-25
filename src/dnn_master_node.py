@@ -118,7 +118,8 @@ def depth_callback(data):
       
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(data, desired_encoding='32FC1')
-        print(math.isnan(cv_image[y, x]))
+        print('Is Nan: ', math.isnan(cv_image[y, x]))
+
         if math.isnan(cv_image[y, x]) == False and math.isinf(cv_image[y, x]) == False:
             Zp = cv_image[y, x]
             Yp = (y - cy) * Zp / f 
@@ -130,6 +131,8 @@ def depth_callback(data):
             coord_fma = Float32MultiArray(data=[Xp, Yp, Zp])
             pub_coord.publish(coord_fma)
             depth_done = True
+        else:
+            retrieve_depth = True
             
         
         #right_pos =False
@@ -146,7 +149,7 @@ def callback_bool(data):
     else:
       right_pos = False
     print('callback bool right_pos: ', right_pos)
-    return right_pos
+    #return right_pos
 
 def main():
     rospy.init_node('dnn_master_node', anonymous=False)
@@ -156,7 +159,6 @@ def main():
 
     image_sub = rospy.Subscriber('/zed2/zed_node/left/image_rect_color',Image,callback)
     bp_sub = rospy.Subscriber("arm_BP", Bool, callback_bool)
-    pub_BP = rospy.Publisher('arm_BP', Bool, queue_size=1)
     depth_sub = rospy.Subscriber('/zed2/zed_node/depth/depth_registered',Image, depth_callback)
 
 

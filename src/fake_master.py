@@ -11,7 +11,8 @@ from dl_control.srv import *
 
 
 def main():
-
+    rospy.init_node('fake_master', anonymous=False)
+    print('Start')
 
     x_target = 1800
     y_target= 1
@@ -19,6 +20,7 @@ def main():
     rospy.wait_for_service('go_to_target')
     rospy.wait_for_service('get_pos')
     while not rospy.is_shutdown():
+        print('fake master while not shut down')
         x_target = input("input coordinates:")
         y_target = input("")
         z_target = input("")

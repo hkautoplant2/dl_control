@@ -13,8 +13,8 @@ import math
 
 from std_msgs.msg import Float32MultiArray
 from std_msgs.msg import Bool
-from kinematic_service.srv import GoToTarget,GoToTargetRequest,GoToTargetResponse
-from kinematic_service.srv import GetPos,GetPosRequest,GetPosResponse
+from dl_control.srv import GoToTarget,GoToTargetRequest,GoToTargetResponse
+from dl_control.srv import GetPos,GetPosRequest,GetPosResponse
 UC_finished = False
 stop_publishing_joints = False
 
