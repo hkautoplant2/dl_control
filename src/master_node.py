@@ -22,34 +22,38 @@ from cv_bridge import CvBridge
 
 from dl_control.srv import*
 
+
 class Arm:
     def __init__(self):
         self.coord_done = False
         self.coord = None
+        self.counter = 0
 
     def coord_callback(self, data):
-        print('coord callback: ', data)
         self.coord_done = True
         self.coord = data.data
 
+    def countdepth_callback(self, data):
+        self.counter = self.counter + 1
+       
+
     def bp_callback(self, data):
-        print('base position callback: ', data)
         if data == True:
             print('base position is True')
-        else:
-            print('base position is False')
+
 
 
 def transform(current, camera):
-    X = current[0] - camera[2]*1000
-    Y = 1 #TODO
-    Z = current[2] - camera[0]*1000 + 500
+    X = current[0] + camera[1]*1000
+    Y = 1 #TODO current[1] + camera[0]*1000
+    Z = current[2] - camera[2]*1000 + 200
     return X, Y, Z
 
 
 def main():
     rospy.init_node('master_node', anonymous=False)
-    rate = rospy.Rate(0.03)
+    rate = rospy.Rate(0.015)
+    inrate = rospy.Rate(0.5)
     rospy.wait_for_service('go_to_target')
     rospy.wait_for_service('get_pos')
 
@@ -62,9 +66,10 @@ def main():
 
     rospy.Subscriber('/coord',Float32MultiArray,arm.coord_callback)
     rospy.Subscriber('/arm_BP', Bool, arm.bp_callback)
+    rospy.Subscriber('/depth_counter', Bool, arm.countdepth_callback)
 
     A = [2200, 1, 1100]
-    B = [2200, 1, 1000]
+    B = [2000, 1, 1000]
 
  
     pub_BP.publish(False)
@@ -72,46 +77,78 @@ def main():
     time.sleep(3)
     
 
-    '''
-    print('publish True')
-    pub_BP.publish(True)
-    while not rospy.is_shutdown():
-        print('arm.coord_done', arm.coord_done)
-        if arm.coord_done == True:
-            arm.coord_done = False
-            break
-        rate.sleep()
-    print('Out of first plant')
-    print('Retrieved coordinates: ', arm.coord[0], arm.coord[1], arm.coord[2])
-    time.sleep(2)
-    print('Reset')
-    time.sleep(2)'''
-
     i = 0
-    
+    #TODO Input guard for taking long time to find non NaN depth image
     while not rospy.is_shutdown():
+        print('Start of while loop')
         if i == 0:
-            
+            print('State 0 = A, moving to BP A')
+            rospy.wait_for_service('go_to_target')
+            print('servic ready, go to A')
             response = goto(A[0], A[1], A[2])
-            print('publish base position True')
+            print('publish base A position True, response: ', response.x_current)
             pub_BP.publish(True)
-            if arm.coord_done == True:
-                arm.coord_done = False
-                XA, YA, ZA = transform(A, arm.coord)
-                print('Coordinates for A spot received, moving to ', XA, YA, ZA)
-                response = goto(XA, YA, ZA)
-                i = 1
+            while not rospy.is_shutdown() and i == 0:
+                if arm.coord_done == True:
+                    arm.coord_done = False
+                    pub_BP.publish(False)
+                    print( "Coordinates from camera: ", arm.coord )
+                    XA, YA, ZA = transform([response.x_current, response.y_current, response.z_current], arm.coord)
+                    print("Target/spot coordinates for end-effector: ", XA, YA, ZA )
+                    if (1500 <= XA <= 3000) and (ZA >= 220):
+                        rospy.wait_for_service('go_to_target')
+                        response = goto(XA, YA, ZA)
+                        print('Reached target spot, performing plantation...')
+                        time.sleep(2)
+                        i = 1 
+                        break
+                    else: 
+                        print('Target area was out of bound, moving to next state')
+                        i = 1 
+                        break
+                elif arm.counter > 15:
+                    print('Depth not found, noving to next step')
+                    i = 1
+                    break 
+                   
+                inrate.sleep()
+                    
+
+        
         if i == 1:
             print('State 1 = B, moving to BP B')
+            rospy.wait_for_service('go_to_target')
+            print('servic ready, go to B')
             response = goto(B[0], B[1], B[2])
-            print('publish base positio True')
+            print('publish base B position True, response: ', response.x_current)
             pub_BP.publish(True)
-            if arm.coord_done == True:
-                arm.coord_done = False
-                XB, YB, ZB = transform(B, arm.coord)
-                print('Coordinates for B spot received, moving to ', XB, YB, ZB)
-                response = goto(XB, YB, ZB)
-                i = 0
+            while not rospy.is_shutdown() and i == 1:
+                if arm.coord_done == True:
+                    arm.coord_done = False
+                    pub_BP.publish(False)
+                    print( "Coordinates from camera: ", arm.coord )
+                    XB, YB, ZB = transform([response.x_current, response.y_current, response.z_current], arm.coord)
+                    print("Target/spot coordinates for end-effector: ", XB, YB, ZB )
+                    if 1500 <= XB <= 3000 and (ZB >= 220):
+                        rospy.wait_for_service('go_to_target')
+                        response = goto(XB, YB, ZB)
+                        print('Reached target spot, performing plantation...')
+                        time.sleep(2)
+                        i = 0 
+                        break
+                    else: 
+                        print('Target area was out of bound, moving to next state')
+                        i = 0 
+                        break
+                elif arm.counter > 15:
+                    print('Depth not found, noving to next step')
+                    i = 1
+                    break
+                    
+                inrate.sleep()
+              
+        
+        print('code done, wait for rate')
         rate.sleep()
 
 

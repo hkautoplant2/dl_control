@@ -26,7 +26,6 @@ from std_msgs.msg import Float32MultiArray
 from dl_control.srv import*
 
 right_pos = False
-dnn = False
 retrieve_depth = False
 xc_pix = None
 yc_pix = None
@@ -34,6 +33,7 @@ depth_done = False
 X = 0
 Y = 0
 Z = 0
+counter = 0
 
 def run_DNN(pic_data):
         p2 = subprocess.Popen(["bash", "/home/jetson/catkin_ws/src/dl_control/src/shell_remove.sh"])
@@ -79,9 +79,9 @@ def read_file():
 	                y1=float(entry[5])
 		        x2=float(entry[6])
 		        y2=float(entry[7])
-
-		        y_middle=(y2-y1)/2 + y1
-	                x_middle=(x2-x1)/2 + x1
+                        print('Stone coordinates: ', x1, y1, x2, y2)
+		        y_middle=(y2+y1)/2 
+	                x_middle=(x2+x1)/2 
                         return True, x_middle, y_middle
             else:
                 return False, 0.00, 0.00     
@@ -89,24 +89,26 @@ def read_file():
 
 
 def callback(data):
-    global right_pos, retrieve_depth, xc_pix, yc_pix, dnn, depth_done  
+    global right_pos, retrieve_depth, xc_pix, yc_pix, depth_done  
     time.sleep(0.5)
-    if len(data.data)==3686400 and right_pos == True and dnn == True:
+    if len(data.data)==3686400 and right_pos == True:
         print('in callback')
-        dnn = False
+        right_pos =False
         xc, yc = run_DNN(data)
         xc_pix = xc
         yc_pix = yc
-        retrieve_depth = True
+        retrieve_depth = True   #Let the depth image callback know we have pixels to calculate on
         
         print('callback done ', xc, yc)
-        right_pos =False
+        
         #time.sleep(1)
 
 def depth_callback(data):
     global right_pos, retrieve_depth, xc_pix, yc_pix, depth_done, X, Y, Z 
     
     pub_coord = rospy.Publisher('coord', Float32MultiArray, queue_size=1)
+    pub_counter = rospy.Publisher('depth_counter', Bool, queue_size=1)
+
     if retrieve_depth == True:
         retrieve_depth = False
         cx = data.width / 2
@@ -122,7 +124,7 @@ def depth_callback(data):
 
         if math.isnan(cv_image[y, x]) == False and math.isinf(cv_image[y, x]) == False:
             Zp = cv_image[y, x]
-            Yp = (y - cy) * Zp / f 
+            Yp = (cy - y) * Zp / f 
             Xp = (x - cx) * Zp / f
             print('point', Xp, Yp, Zp)
             X = Xp
@@ -133,6 +135,7 @@ def depth_callback(data):
             depth_done = True
         else:
             retrieve_depth = True
+            pub_counter.publish(True)
             
         
         #right_pos =False
@@ -141,11 +144,9 @@ def callback_bool(data):
     #rospy.loginfo('image_to_dnn -> arm_BP callback heard:  %s ', data.data)
 
     global right_pos
-    global dnn
 
     if data.data==True:
       right_pos = True
-      dnn = True
     else:
       right_pos = False
     print('callback bool right_pos: ', right_pos)
@@ -162,28 +163,6 @@ def main():
     depth_sub = rospy.Subscriber('/zed2/zed_node/depth/depth_registered',Image, depth_callback)
 
 
-
-    '''A = [1.5, 1.5, 1.5]
-    B = [1.1, 1.1, 1.1]
-    BP = [A, B]
-    i = 0
-    while i < 10:
-        i = i+1
-        BP_A = FKIK_service(A)
-        if BP_A == True:
-            T_A = DNN_service(A)
-            A_G = FKIK_service(T_A)
-            print('Planting at A successful')
-        else:
-            print('FKIK BP-A not successful')
-
-        BP_B = FKIK_service(B)
-        if BP_B == True:
-            T_B = DNN_service(B)
-            B_G = FKIK_service(T_B)
-            print('Planting at B successful')    
-        else:
-            print('FKIK BP-B not successful')'''
 
     rospy.spin()
 
