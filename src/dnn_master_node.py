@@ -57,7 +57,6 @@ def run_DNN(pic_data):
        
         found_area, x_c, y_c = read_file()
         
-        print found_area, x_c, y_c
         #time.sleep(10)
         return x_c, y_c
 
@@ -82,7 +81,7 @@ def read_file():
                         print('Stone coordinates: ', x1, y1, x2, y2)
 		        y_middle=(y2+y1)/2 
 	                x_middle=(x2+x1)/2 
-                        return True, x_middle, y_middle
+                        return True, int(x_middle), int(y_middle)
             else:
                 return False, 0.00, 0.00     
 
@@ -95,11 +94,11 @@ def callback(data):
         print('in callback')
         right_pos =False
         xc, yc = run_DNN(data)
-        xc_pix = xc
-        yc_pix = yc
+        xc_pix = int(xc)
+        yc_pix = int(yc)
         retrieve_depth = True   #Let the depth image callback know we have pixels to calculate on
         
-        print('callback done ', xc, yc)
+        print('callback done, target pixels:  ', xc, yc)
         
         #time.sleep(1)
 
@@ -110,30 +109,34 @@ def depth_callback(data):
     pub_counter = rospy.Publisher('depth_counter', Bool, queue_size=1)
 
     if retrieve_depth == True:
-        retrieve_depth = False
-        cx = data.width / 2
-        cy = data.height / 2
+        xci = data.width / 2
+        yci = data.height / 2
         f = 500 # focal length in pixels HD720 resolution
         b = 0.12 # baseline
-        x = int(xc_pix)
-        y = int(yc_pix)
+        Pxi = int(xc_pix)
+        Pyi = int(yc_pix)
       
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(data, desired_encoding='32FC1')
-        print('Is Nan: ', math.isnan(cv_image[y, x]), math.isinf(cv_image[y, x]))
+        print('Is Nan: ', math.isnan(cv_image[Pyi, Pxi]), math.isinf(cv_image[Pyi, Pxi]))
 
-        if math.isnan(cv_image[y, x]) == False and math.isinf(cv_image[y, x]) == False:
-            Zp = cv_image[y, x]
-            Yp = (cy - y) * Zp / f 
-            Xp = (x - cx) * Zp / f
-            print('point', Xp, Yp, Zp)
-            X = Xp
-            Y= Yp
-            Z=Zp
-            coord_fma = Float32MultiArray(data=[Xp, Yp, Zp])
+        if math.isnan(cv_image[Pyi, Pxi]) == False and math.isinf(cv_image[Pyi, Pxi]) == False and retrieve_depth:
+            retrieve_depth = False
+            Pzd = cv_image[Pyi, Pxi]
+            Pxd = (Pxi-xci) * Pzd / f
+            Pyd = (yci-Pyi) * Pzd / f 
+            
+            Pxc = Pzd
+            Pyc = -Pxd
+            Pzc = Pyd
+            print('point', Pxc, Pyc, Pzc)
+            X = Pxc
+            Y = Pyc
+            Z = Pzc
+            coord_fma = Float32MultiArray(data=[Pxc, Pyc, Pzc])
             pub_coord.publish(coord_fma)
             depth_done = True
-        else:
+        elif retrieve_depth:
             retrieve_depth = True
             pub_counter.publish(True)
             

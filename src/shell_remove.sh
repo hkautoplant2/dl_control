@@ -6,14 +6,14 @@ echo Start cleaning up directories
 rm ~/res_inf_jet/*
 
 #Clean run inference folder for network
-ssh autoplant2@192.168.1.102 'docker exec -i 7efb4eb06822 rm -rf run_inf_cont'
+ssh autoplant2@192.168.1.102 'docker exec -i 25d8449037fe rm -rf run_inf_cont'
 
 #Clean inference result map for network
-ssh autoplant2@192.168.1.102 'docker exec -i 7efb4eb06822 rm -rf res_inf_cont'
+ssh autoplant2@192.168.1.102 'docker exec -i 25d8449037fe rm -rf res_inf_cont'
 
 #Create the removed directories again (ugly solution)
-ssh autoplant2@192.168.1.102 'docker exec -i 7efb4eb06822 mkdir run_inf_cont'
-ssh autoplant2@192.168.1.102 'docker exec -i 7efb4eb06822 mkdir res_inf_cont'
+ssh autoplant2@192.168.1.102 'docker exec -i 25d8449037fe mkdir run_inf_cont'
+ssh autoplant2@192.168.1.102 'docker exec -i 25d8449037fe mkdir res_inf_cont'
 
 #Clean up host run inference map
 ssh autoplant2@192.168.1.102 'rm inference/run_inf_host/*'

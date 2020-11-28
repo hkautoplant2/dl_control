@@ -46,8 +46,21 @@ class Arm:
 def transform(current, camera):
     X = current[0] + camera[1]*1000
     Y = 1 #TODO current[1] + camera[0]*1000
-    Z = current[2] - camera[2]*1000 + 200
-    return X, Y, Z
+    Z = current[2] - camera[1]*1000 + 400
+    print('Old transform: ', X, Y, Z)
+
+    alpha = np.arctan(current[0]/current[1])
+    if current[1] >= 0:
+        theta = alpha + 1.5708
+    else:
+        theta = alpha + 2.3562
+    print('Theta is: ', theta, 'alpha is: ', alpha)
+    PX = current[0] + camera[0]*1000*np.cos(theta) + camera[2]*1000*np.sin(theta)
+    PY = current[1] - camera[0]*1000*np.sin(theta) + camera[2]*1000*np.cos(theta)
+    PZ = Z
+    print('New transform: ', PX, PY, PZ)
+    
+    return PX, PY, PZ
 
 
 def main():
@@ -76,19 +89,21 @@ def main():
     print('Starting sequence, publish False')
     time.sleep(3)
     
-
+    waiting = False
     i = 0
     #TODO Input guard for taking long time to find non NaN depth image
     while not rospy.is_shutdown():
         print('Start of while loop')
         if i == 0:
-            print('State 0 = A, moving to BP A')
-            rospy.wait_for_service('go_to_target')
-            print('servic ready, go to A')
-            response = goto(A[0], A[1], A[2])
-            print('publish base A position True, response: ', response.x_current)
-            pub_BP.publish(True)
-            while not rospy.is_shutdown() and i == 0:
+            if not waiting:
+                print('State 0 = A, moving to BP A')
+                rospy.wait_for_service('go_to_target')
+                resp = goto(A[0], A[1], A[2])
+                response = resp
+                print('publish base A position True, response: ', response)
+                pub_BP.publish(True)
+                waiting = True
+            while not rospy.is_shutdown() and i == 0 and waiting:
                 if arm.coord_done == True:
                     arm.coord_done = False
                     pub_BP.publish(False)
@@ -101,14 +116,19 @@ def main():
                         print('Reached target spot, performing plantation...')
                         time.sleep(2)
                         i = 1 
+                        waiting = False
                         break
                     else: 
                         print('Target area was out of bound, moving to next state')
                         i = 1 
+                        waiting = False
                         break
                 elif arm.counter > 15:
-                    print('Depth not found, noving to next step')
+                    print('Depth not found, moving to next step')
                     i = 1
+                    pub_BP.publish(False)
+                    arm.counter = 0
+                    waiting = False
                     break 
                    
                 inrate.sleep()
@@ -116,13 +136,15 @@ def main():
 
         
         if i == 1:
-            print('State 1 = B, moving to BP B')
-            rospy.wait_for_service('go_to_target')
-            print('servic ready, go to B')
-            response = goto(B[0], B[1], B[2])
-            print('publish base B position True, response: ', response.x_current)
-            pub_BP.publish(True)
-            while not rospy.is_shutdown() and i == 1:
+            if not waiting:
+                print('State 1 = B, moving to BP B')
+                rospy.wait_for_service('go_to_target')
+                resp = goto(B[0], B[1], B[2])
+                response = resp
+                print('publish base B position True, response: ', response)
+                pub_BP.publish(True)
+                waiting = True
+            while not rospy.is_shutdown() and i == 1 and waiting:
                 if arm.coord_done == True:
                     arm.coord_done = False
                     pub_BP.publish(False)
@@ -135,14 +157,19 @@ def main():
                         print('Reached target spot, performing plantation...')
                         time.sleep(2)
                         i = 0 
+                        waiting = False
                         break
                     else: 
                         print('Target area was out of bound, moving to next state')
                         i = 0 
+                        waiting = False
                         break
                 elif arm.counter > 15:
                     print('Depth not found, noving to next step')
                     i = 1
+                    pub_BP.publish(False)
+                    waiting = False
+                    arm.counter = 0
                     break
                     
                 inrate.sleep()
