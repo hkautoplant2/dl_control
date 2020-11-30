@@ -11,6 +11,7 @@ import cv2
 import time
 import os
 import numpy as np
+import math
 
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs.msg import Imu
@@ -44,23 +45,15 @@ class Arm:
 
 
 def transform(current, camera):
-    X = current[0] + camera[1]*1000
-    Y = 1 #TODO current[1] + camera[0]*1000
-    Z = current[2] - camera[1]*1000 + 400
-    print('Old transform: ', X, Y, Z)
-
-    alpha = np.arctan(current[0]/current[1])
-    if current[1] >= 0:
-        theta = alpha + 1.5708
-    else:
-        theta = alpha + 2.3562
-    print('Theta is: ', theta, 'alpha is: ', alpha)
-    PX = current[0] + camera[0]*1000*np.cos(theta) + camera[2]*1000*np.sin(theta)
-    PY = current[1] - camera[0]*1000*np.sin(theta) + camera[2]*1000*np.cos(theta)
-    PZ = Z
-    print('New transform: ', PX, PY, PZ)
+    theta = np.arctan(float(current[1])/float(current[0]))
     
-    return PX, PY, PZ
+    print('theta', theta, 'current 1 (y)', current[1], 'current 0 (x)', current[0], 'sin', np.sin(theta), 'cos', np.cos(theta))
+    Z = current[2] - camera[0] + 200 #200 mm margin from camera to target on ground
+    X = current[0] + camera[1]*np.sin(theta) - camera[2]*np.cos(theta)
+    Y = current[1] - camera[1]*np.cos(theta) - camera[2]*np.sin(theta)
+    print('New transform: ', X, Y, Z)
+    
+    return X, Y, Z
 
 
 def main():
@@ -97,10 +90,10 @@ def main():
         if i == 0:
             if not waiting:
                 print('State 0 = A, moving to BP A')
-                rospy.wait_for_service('go_to_target')
-                resp = goto(A[0], A[1], A[2])
-                response = resp
-                print('publish base A position True, response: ', response)
+                #rospy.wait_for_service('go_to_target')
+                #resp = goto(A[0], A[1], A[2])
+                #response = resp
+                #print('publish base A position True, response: ', response)
                 pub_BP.publish(True)
                 waiting = True
             while not rospy.is_shutdown() and i == 0 and waiting:
@@ -108,11 +101,13 @@ def main():
                     arm.coord_done = False
                     pub_BP.publish(False)
                     print( "Coordinates from camera: ", arm.coord )
-                    XA, YA, ZA = transform([response.x_current, response.y_current, response.z_current], arm.coord)
+                    #XA, YA, ZA = transform([response.x_current, response.y_current, response.z_current], arm.coord)
+                    XA, YA, ZA = transform([2200, -200, 1100], arm.coord)
                     print("Target/spot coordinates for end-effector: ", XA, YA, ZA )
+                    abba = True
                     if (1500 <= XA <= 3000) and (ZA >= 220):
                         rospy.wait_for_service('go_to_target')
-                        response = goto(XA, YA, ZA)
+                        #response = goto(XA, YA, ZA)
                         print('Reached target spot, performing plantation...')
                         time.sleep(2)
                         i = 1 
@@ -125,7 +120,7 @@ def main():
                         break
                 elif arm.counter > 15:
                     print('Depth not found, moving to next step')
-                    i = 1
+                    i = 0
                     pub_BP.publish(False)
                     arm.counter = 0
                     waiting = False

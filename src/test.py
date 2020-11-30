@@ -36,9 +36,9 @@ Z = 0
 counter = 0
 
 def run_DNN(pic_data):
-        p2 = subprocess.Popen(["bash", "/home/jetson/catkin_ws/src/dl_control/src/shell_remove.sh"])
-        (output2, err2) = p2.communicate()
-        p2.status = p2.wait()
+        #p2 = subprocess.Popen(["bash", "/home/jetson/catkin_ws/src/dl_control/src/shell_remove.sh"])
+        #(output2, err2) = p2.communicate()
+        #p2.status = p2.wait()
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(pic_data, "bgr8")
         basename = "log_image"
@@ -48,12 +48,11 @@ def run_DNN(pic_data):
         path = os.getcwd() + '/' + filename
         cv2.imwrite(filename, cv_image)
         t0=time.time()
-        #t0 = perf_counter()
-        p = subprocess.Popen(["bash", "/home/jetson/catkin_ws/src/dl_control/src/shell_inference.sh"])
-        (output, err) = p.communicate()
-        p.status = p.wait()
+        #p = subprocess.Popen(["bash", "/home/jetson/catkin_ws/src/dl_control/src/shell_inference.sh"])
+        #(output, err) = p.communicate()
+        #p.status = p.wait()
         t = time.time() - t0
-        print(t, '----------------------------------------------')
+        print('Run DNN')
        
         found_area, x_c, y_c = read_file()
         
@@ -63,7 +62,8 @@ def run_DNN(pic_data):
 def read_file():
 #Program that search in each annotators file, after good area. Then it count the midpoint in the bounding box 
     txt_file = glob.glob('/home/jetson/res_inf_jet/*.txt')
-    
+    print('read file')
+    '''
     with open(txt_file[0], "r") as f:  #The annotators file for the given image 
         if os.stat(txt_file[0]).st_size == 0:
             print('empty')
@@ -83,22 +83,23 @@ def read_file():
 	                x_middle=(x2+x1)/2 
                         return True, int(x_middle), int(y_middle)
             else:
-                return False, 0.00, 0.00     
-
+                return False, 0.00, 0.00  '''
+       
+    return True, 640+50, 360+50
 
 
 def callback(data):
     global right_pos, retrieve_depth, xc_pix, yc_pix, depth_done  
     time.sleep(0.5)
     if len(data.data)==3686400 and right_pos == True:
-        print('in callback')
+        print('in image callback')
         right_pos =False
         xc, yc = run_DNN(data)
         xc_pix = int(xc)
         yc_pix = int(yc)
         retrieve_depth = True   #Let the depth image callback know we have pixels to calculate on
         
-        print('callback done, target pixels:  ', xc, yc)
+        print('image callback done, target pixels:  ', xc, yc)
         
         #time.sleep(1)
 
@@ -111,36 +112,37 @@ def depth_callback(data):
     if retrieve_depth == True:
         xci = data.width / 2
         yci = data.height / 2
+        
         f = 500 # focal length in pixels HD720 resolution
         b = 0.12 # baseline
         Pxi = int(xc_pix)
         Pyi = int(yc_pix)
+        print('xci:', xci, 'yci:', yci, 'Pxi', Pxi, 'Pyi', Pyi)
       
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(data, desired_encoding='32FC1')
-        print('Is Nan: ', math.isnan(cv_image[Pyi, Pxi]), math.isinf(cv_image[Pyi, Pxi]))
+        print('Is Nan: ', math.isnan(cv_image[Pyi, Pxi]), math.isinf(cv_image[Pyi, Pxi]), 'retrieve depth: ', retrieve_depth)
 
+        R = cv_image[Pyi, Pxi]*1000 #Scale to millimeters
         if math.isnan(cv_image[Pyi, Pxi]) == False and math.isinf(cv_image[Pyi, Pxi]) == False and retrieve_depth:
             retrieve_depth = False
-            Pzd = cv_image[Pyi, Pxi]
-            Pxd = (Pxi-xci) * Pzd / f
-            Pyd = (yci-Pyi) * Pzd / f 
-            
-            Pxc = Pzd
-            Pyc = -Pxd
-            Pzc = Pyd
-            #print('yci: ', yci, 'Pyi', Pyi, 'Pyd', Pyd, 'Pzc', Pzc)
-            #print('Camera, depth= ', Pxc, 'left for camera= ', Pyc, 'up for camera= ', Pzc)
-            ('Camera, depth= ', Pzd, 'right for camera= ', Pxd, 'up for camera= ', Pyd)
-            X = Pxc
-            Y = Pyc
-            Z = Pzc
-            coord_fma = Float32MultiArray(data=[Pxd, Pyd, Pzd])
+            print('Pxi: ', Pxi, 'Pyi: ', Pyi)
+            Pypc = xci-Pxi 
+            Pzpc = yci-Pyi
+            Pyc = R*Pypc/f
+            Pzc = R*Pzpc/f
+            Pxc = np.sqrt(R**2 - Pyc**2 - Pzc**2)
+
+            print('R', R, 'cv image', cv_image[Pyi, Pxi])
+            print('Camera, depth= ', Pxc, 'left for camera= ', Pyc, 'up for camera= ', Pzc)
+
+            coord_fma = Float32MultiArray(data=[Pxc, Pyc, Pzc])
             pub_coord.publish(coord_fma)
             depth_done = True
         elif retrieve_depth:
             retrieve_depth = True
             pub_counter.publish(True)
+            depth_done = True
             
         
         #right_pos =False
