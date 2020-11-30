@@ -48,12 +48,11 @@ def run_DNN(pic_data):
         path = os.getcwd() + '/' + filename
         cv2.imwrite(filename, cv_image)
         t0=time.time()
-        #t0 = perf_counter()
         p = subprocess.Popen(["bash", "/home/jetson/catkin_ws/src/dl_control/src/shell_inference.sh"])
         (output, err) = p.communicate()
         p.status = p.wait()
         t = time.time() - t0
-        print(t, '----------------------------------------------')
+        print(t, 'Ran DNN')
        
         found_area, x_c, y_c = read_file()
         
@@ -83,7 +82,7 @@ def read_file():
 	                x_middle=(x2+x1)/2 
                         return True, int(x_middle), int(y_middle)
             else:
-                return False, 0.00, 0.00     
+                return False, 0.00, 0.00      #x (1280), y (720)
 
 
 
@@ -118,32 +117,30 @@ def depth_callback(data):
       
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(data, desired_encoding='32FC1')
-        print('Is Nan: ', math.isnan(cv_image[Pyi, Pxi]), math.isinf(cv_image[Pyi, Pxi]))
+        print('Is Nan: ', math.isnan(cv_image[Pyi, Pxi]), math.isinf(cv_image[Pyi, Pxi]), 'retrieve depth: ', retrieve_depth)
 
+        R = cv_image[Pyi, Pxi]*1000 #Scale to millimeters
         if math.isnan(cv_image[Pyi, Pxi]) == False and math.isinf(cv_image[Pyi, Pxi]) == False and retrieve_depth:
             retrieve_depth = False
-            Pzd = cv_image[Pyi, Pxi]
-            Pxd = (Pxi-xci) * Pzd / f
-            Pyd = (yci-Pyi) * Pzd / f 
-            
-            Pxc = Pzd
-            Pyc = -Pxd
-            Pzc = Pyd
-            #print('yci: ', yci, 'Pyi', Pyi, 'Pyd', Pyd, 'Pzc', Pzc)
-            #print('Camera, depth= ', Pxc, 'left for camera= ', Pyc, 'up for camera= ', Pzc)
-            ('Camera, depth= ', Pzd, 'right for camera= ', Pxd, 'up for camera= ', Pyd)
-            X = Pxc
-            Y = Pyc
-            Z = Pzc
-            coord_fma = Float32MultiArray(data=[Pxd, Pyd, Pzd])
+            print('Pxi: ', Pxi, 'Pyi: ', Pyi)
+            Pypc = xci-Pxi 
+            Pzpc = yci-Pyi
+            Pyc = R*Pypc/f
+            Pzc = R*Pzpc/f
+            Pxc = np.sqrt(R**2 - Pyc**2 - Pzc**2)
+
+            print('R', R, 'cv image', cv_image[Pyi, Pxi])
+            print('Camera, depth= ', Pxc, 'left for camera= ', Pyc, 'up for camera= ', Pzc)
+
+            coord_fma = Float32MultiArray(data=[Pxc, Pyc, Pzc])
             pub_coord.publish(coord_fma)
             depth_done = True
         elif retrieve_depth:
             retrieve_depth = True
             pub_counter.publish(True)
+            depth_done = True
             
         
-        #right_pos =False
 
 def callback_bool(data):
     #rospy.loginfo('image_to_dnn -> arm_BP callback heard:  %s ', data.data)

@@ -145,7 +145,6 @@ def depth_callback(data):
             depth_done = True
             
         
-        #right_pos =False
 
 def callback_bool(data):
     #rospy.loginfo('image_to_dnn -> arm_BP callback heard:  %s ', data.data)
