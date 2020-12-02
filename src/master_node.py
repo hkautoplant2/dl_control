@@ -47,19 +47,18 @@ class Arm:
 def transform(current, camera):
     theta = np.arctan(float(current[1])/float(current[0]))
     
-    print('theta', theta, 'current 1 (y)', current[1], 'current 0 (x)', current[0])
     Z = current[2] - camera[0] + 200 #200 mm margin from camera to target on ground
-    X = current[0] + camera[1]*np.sin(theta) - camera[2]*np.cos(theta)
-    Y = current[1] - camera[1]*np.cos(theta) - camera[2]*np.sin(theta)
-    print('New transform: ', X, Y, Z)
+    X = current[0] + camera[1]*np.cos(theta) + camera[2]*np.sin(theta)
+    Y = current[1] + camera[1]*np.sin(theta) - camera[2]*np.cos(theta)
     
     return X, Y, Z
 
 
 def main():
     rospy.init_node('master_node', anonymous=False)
-    rate = rospy.Rate(0.015)
-    inrate = rospy.Rate(0.5)
+    #rate = rospy.Rate(0.015)
+    rate = rospy.Rate(0.1)
+    inrate = rospy.Rate(2)
     rospy.wait_for_service('go_to_target')
     rospy.wait_for_service('get_pos')
 
@@ -86,14 +85,14 @@ def main():
     i = 0
     #TODO Input guard for taking long time to find non NaN depth image
     while not rospy.is_shutdown():
-        print('Start of while loop')
+        print('-----------Start of while loop---------------')
         if i == 0:
             if not waiting:
                 print('State 0 = A, moving to BP A')
                 rospy.wait_for_service('go_to_target')
                 resp = goto(A[0], A[1], A[2])
                 response = resp
-                print('publish base A position True, response: ', response)
+                print('publish base A position True, response: ', response.x_current, response.y_current, response.z_current)
                 pub_BP.publish(True)
                 waiting = True
             while not rospy.is_shutdown() and i == 0 and waiting:
@@ -108,34 +107,48 @@ def main():
                         rospy.wait_for_service('go_to_target')
                         response = goto(XA, YA, ZA)
                         print('Reached target spot, performing plantation...')
-                        time.sleep(2)
+                        time.sleep(7)
+                        print('Plantation done, moving back to A')
+                        rospy.wait_for_service('go_to_target')
+                        response = goto(A[0], A[1], A[2])
                         i = 1 
                         waiting = False
                         break
                     else: 
-                        print('Target area was out of bound, moving to next state')
+                        print('Target area was out of bound, moving back to A')
+                        rospy.wait_for_service('go_to_target')
+                        response = goto(A[0], A[1], A[2])
                         i = 1 
                         waiting = False
+                        pub_BP.publish(False)
+                        arm.counter = 0
+                        waiting = False
+                        arm.coord_done = False
+                        time.sleep(1)
                         break
-                elif arm.counter > 15:
-                    print('Depth not found, moving to next step')
+                elif arm.counter > 45:
+                    print('Depth not found, moving back to A')
+                    rospy.wait_for_service('go_to_target')
+                    response = goto(A[0], A[1], A[2])
                     i = 1
                     pub_BP.publish(False)
                     arm.counter = 0
                     waiting = False
+                    arm.coord_done = False
+                    time.sleep(1)
                     break 
                    
                 inrate.sleep()
                     
 
         
-        if i == 1:
+        elif i == 1:
             if not waiting:
                 print('State 1 = B, moving to BP B')
                 rospy.wait_for_service('go_to_target')
                 resp = goto(B[0], B[1], B[2])
                 response = resp
-                print('publish base B position True, response: ', response)
+                print('publish base B position True, response: ', response.x_current, response.y_current, response.z_current)
                 pub_BP.publish(True)
                 waiting = True
             while not rospy.is_shutdown() and i == 1 and waiting:
@@ -149,27 +162,41 @@ def main():
                         rospy.wait_for_service('go_to_target')
                         response = goto(XB, YB, ZB)
                         print('Reached target spot, performing plantation...')
-                        time.sleep(2)
+                        time.sleep(7)
+                        print('Plantation done, moving back to B')
+                        rospy.wait_for_service('go_to_target')
+                        response = goto(B[0], B[1], B[2])
                         i = 0 
                         waiting = False
                         break
                     else: 
-                        print('Target area was out of bound, moving to next state')
+                        print('Target area was out of bound, moving back to B')
+                        rospy.wait_for_service('go_to_target')
+                        response = goto(B[0], B[1], B[2])
                         i = 0 
                         waiting = False
+                        pub_BP.publish(False)
+                        arm.counter = 0
+                        waiting = False
+                        arm.coord_done = False
+                        time.sleep(1)
                         break
-                elif arm.counter > 15:
-                    print('Depth not found, noving to next step')
-                    i = 1
+                elif arm.counter > 45:
+                    print('Depth not found, moving back to B')
+                    rospy.wait_for_service('go_to_target')
+                    response = goto(B[0], B[1], B[2])
+                    i = 0
                     pub_BP.publish(False)
                     waiting = False
                     arm.counter = 0
+                    arm.coord_done = False
+                    time.sleep(1)
                     break
                     
                 inrate.sleep()
               
         
-        print('code done, wait for rate')
+        print('code done, wait for rate', i, waiting)
         rate.sleep()
 
 

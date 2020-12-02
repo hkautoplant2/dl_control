@@ -12,23 +12,27 @@ import time
 
 def callback_bool(data):
     print('Arm is in base position: ', data.data)    
+    pub_coord = rospy.Publisher('coord', Float32MultiArray, queue_size=1)
+    if data.data == True:
+        print('Base position True, getting coordinates')
+        
+        time.sleep(2)
+        Pxc = 2200
+        Pyc = -200
+        Pzc = 700
+        coord_fma = Float32MultiArray(data=[Pxc, Pyc, Pzc])
+        pub_coord.publish(coord_fma)
 
 
-def callback(data):
-    print('Received coordinates: ', data.data)
 
-def countdepth_callback(data):
-    print('Starting counting depth tries', data)
 
 
 def fake_arm():
  
 
     rospy.Subscriber("arm_BP", Bool, callback_bool)
-    rospy.Subscriber('coord',Float32MultiArray,callback)
-    rospy.Subscriber('depth_counter', Bool, countdepth_callback)
 
-    rospy.init_node('echo_out', anonymous=False)
+    rospy.init_node('fake_dnn', anonymous=False)
 
 
     rospy.spin()
@@ -37,7 +41,7 @@ def fake_arm():
 
 if __name__ == '__main__':
     try:
-	print("Ecko out")
+	print("fake_dnn")
         fake_arm()
     except rospy.ROSInterruptException:
         pass

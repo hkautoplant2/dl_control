@@ -18,9 +18,7 @@ from dl_control.srv import GetPos,GetPosRequest,GetPosResponse
 UC_finished = False
 stop_publishing_joints = False
 
-x_curent = 0
-y_curent = 0
-z_curent = 0
+
 
 
 
@@ -149,7 +147,10 @@ def go_to_target(req):
     alpha_limit =155 # degress
 
 
-    omega = math.atan2(y,x)
+    theta = math.atan2(y,x)
+    omega = theta + math.pi	
+   
+
     d = math.sqrt(x**2+y**2)
     dz = math.sqrt((z-L)**2+d**2)
 
@@ -232,7 +233,7 @@ def go_to_target(req):
 
     print("goal angles=",[omega,alpha,beta,gamma])
     x_curent,y_curent,z_curent = FK()
-    return x_current,y_curent,z_current
+    return x_current,y_current,z_current
 
 def FK_cb(msg):
 
@@ -248,13 +249,15 @@ def FK_cb(msg):
     alpha = msg.data[1]
     beta = msg.data[2]
     gamma = msg.data[3]
+    
+    print("current angles=",omega,alpha,beta,gamma)
 
     omega = omega*math.pi/180
     alpha = alpha*math.pi/180
     beta = beta*math.pi/180
     gamma = gamma*math.pi/180
-    print("current angles=",msg.data)
-
+    theta = omega - math.pi
+    
     A = 1590
     B = 1670
     C = 100
@@ -266,8 +269,12 @@ def FK_cb(msg):
 
     z = dz*math.sin(alpha2)+L 
     d = dz*math.cos(alpha2)
-    x = math.sqrt(d**2/(math.tan(omega)**2+1))
-    y = math.sqrt(d**2-x**2)
+    #x = math.sqrt(d**2/(math.tan(omega)**2+1))
+    #y = math.sqrt(d**2-x**2)
+    x = d*math.cos(theta)
+    y = d*math.sin(theta) 
+    
+    
 
     x_current = x
     y_current = y
@@ -339,7 +346,7 @@ def get_pos(msg):
 
     print("current pos",x_current,y_current,z_current)
 
-    return x_current,y_curent,z_current
+    return x_current,y_current,z_current
 
 
 

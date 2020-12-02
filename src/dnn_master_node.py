@@ -33,7 +33,7 @@ depth_done = False
 X = 0
 Y = 0
 Z = 0
-counter = 0
+depth_counter = 0
 
 def run_DNN(pic_data):
         p2 = subprocess.Popen(["bash", "/home/jetson/catkin_ws/src/dl_control/src/shell_remove.sh"])
@@ -92,7 +92,9 @@ def callback(data):
     if len(data.data)==3686400 and right_pos == True:
         print('in callback')
         right_pos =False
-        xc, yc = run_DNN(data)
+        #xc, yc = run_DNN(data)
+        xc = 640
+        yc = 360
         xc_pix = int(xc)
         yc_pix = int(yc)
         retrieve_depth = True   #Let the depth image callback know we have pixels to calculate on
@@ -110,7 +112,8 @@ def depth_callback(data):
     if retrieve_depth == True:
         xci = data.width / 2
         yci = data.height / 2
-        f = 500 # focal length in pixels HD720 resolution
+        #f = 500 # focal length in pixels HD720 resolution ZED2
+        f = 700 # focal length ZED1
         b = 0.12 # baseline
         Pxi = int(xc_pix)
         Pyi = int(yc_pix)
@@ -139,7 +142,12 @@ def depth_callback(data):
             retrieve_depth = True
             pub_counter.publish(True)
             depth_done = True
+            if depth_counter > 45:
+                retrieve_depth = False
             
+def countdepth_callback(data):
+    global depth_counter
+    depth_counter = depth_counter + 1
         
 
 def callback_bool(data):
@@ -160,9 +168,10 @@ def main():
     directory = '/home/jetson/run_inf_jet'
     os.chdir(directory)
 
-    image_sub = rospy.Subscriber('/zed2/zed_node/left/image_rect_color',Image,callback)
+    image_sub = rospy.Subscriber('/zed/zed_node/left/image_rect_color',Image,callback)
     bp_sub = rospy.Subscriber("arm_BP", Bool, callback_bool)
-    depth_sub = rospy.Subscriber('/zed2/zed_node/depth/depth_registered',Image, depth_callback)
+    depth_sub = rospy.Subscriber('/zed/zed_node/depth/depth_registered',Image, depth_callback)
+    rospy.Subscriber('/depth_counter', Bool, countdepth_callback)
 
 
 
