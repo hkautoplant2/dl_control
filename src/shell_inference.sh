@@ -10,7 +10,7 @@ scp -r ~/run_inf_jet/* autoplant2@192.168.1.102:~/inference/run_inf_host
 ssh autoplant2@192.168.1.102 'docker cp inference/run_inf_host/. 25d8449037fe:/workspace/run_inf_cont'
 
 #Execute inference on the image
-ssh autoplant2@192.168.1.102 'docker exec -i 25d8449037fe tlt-infer faster_rcnn -e /workspace/examples/faster_rcnn/specs/retrain_DNN.txt'
+ssh autoplant2@192.168.1.102 'docker exec -i 25d8449037fe tlt-infer faster_rcnn -e /workspace/examples/faster_rcnn/specs/retrain_specs.txt'
 
 #Copy resulting labeled image and label file to local host map 
 ssh autoplant2@192.168.1.102 'docker cp 25d8449037fe:/workspace/res_inf_cont/. ~/inference/res_inf_host'
