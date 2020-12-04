@@ -24,40 +24,13 @@ from cv_bridge import CvBridge
 from dl_control.srv import*
 
 
-class Arm:
-    def __init__(self):
-        self.coord_done = False
-        self.coord = None
-        self.counter = 0
 
-    def coord_callback(self, data):
-        self.coord_done = True
-        self.coord = data.data
-
-    def countdepth_callback(self, data):
-        self.counter = self.counter + 1
-       
-
-    def bp_callback(self, data):
-        if data == True:
-            print('base position is True')
-
-
-
-def transform(current, camera):
-    theta = np.arctan(float(current[1])/float(current[0]))
-    
-    Z = current[2] - camera[0] + 200 #200 mm margin from camera to target on ground
-    X = current[0] + camera[1]*np.cos(theta) + camera[2]*np.sin(theta)
-    Y = current[1] + camera[1]*np.sin(theta) - camera[2]*np.cos(theta)
-    
-    return X, Y, Z
 
 
 def main():
     rospy.init_node('master_node', anonymous=False)
     #rate = rospy.Rate(0.015)
-    rate = rospy.Rate(0.1)
+    rate = rospy.Rate(0.2)
     inrate = rospy.Rate(2)
     rospy.wait_for_service('go_to_target')
     rospy.wait_for_service('get_pos')
@@ -67,23 +40,39 @@ def main():
 
 
     #Starting point should be Start
-    Start = [2200, 0, 1100]
+    S = [2200, 0, 1000]
     #Test cases, 3 or 5 of each
     A = [1800, 0, 500]
-    B = [2142, 500, 1000]
-    C = [1800, 500, 500]
+    B = [2142, -500, 1000]
+    C = [1800, -500, 500]
 
  
-    
-    target = A   #Change to B and C 
+    i = 0
+    target = B   #Change to B and C 
 
     while not rospy.is_shutdown():
         print('-----------Starting test---------------')
-        rospy.wait_for_service('go_to_target')
-        response = goto(target[0], target[1], target[2])
-        print('Response: ', response.x_current, response.y_current, response.z_current)
+        if i == 0:
+            print('Target is: ', S)
+            rospy.wait_for_service('go_to_target')
+            response = goto(S[0], S[1], S[2])
+            print('Response: ', response.x_current, response.y_current, response.z_current)
+            time.sleep(10)
+            print('Switch state')
+            i = 1
+        elif i == 1:
+            print('Target is: ', target)
+            rospy.wait_for_service('go_to_target')
+            response = goto(target[0], target[1], target[2])
+            print('Response: ', response.x_current, response.y_current, response.z_current)
+            time.sleep(10)
+            print('Switch state')
+            i = 0
+        #current = getpos()
+        #print('Current pos: ', current)
+        #time.sleep(5)
 
-        
+
         print('code done, wait for rate')
         rate.sleep()
 

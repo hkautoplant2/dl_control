@@ -36,10 +36,10 @@ depth_counter = 0
 
 
 a = [640, 360]
-b = [640-100, 360-100]
-c = [640-500, 360+100]
-d = [640+500, 360-100]
-e = [640+100, 360+100]
+b = [540, 260]
+c = [140, 460]
+d = [1140, 260]
+e = [740, 460]
 
 
 
@@ -52,12 +52,12 @@ def callback(data):
         #TODO Add to mark out the selected pixels on saved image
         #Save image
         bridge = CvBridge()
-        cv_image = bridge.imgmsg_to_cv2(pic_data, "bgr8")
-        cv2.circle(cv_image,(a[0],a[1]), 60, (0,0,255), -1) #pixelpair a
-        cv2.circle(cv_image,(b[0],b[1]), 60, (0,0,255), -1) #pixelpair b
-        cv2.circle(cv_image,(c[0],c[1]), 60, (0,0,255), -1) #pixelpair c
-        cv2.circle(cv_image,(d[0],d[1]), 60, (0,0,255), -1) #pixelpair d
-        cv2.circle(cv_image,(e[0],e[1]), 60, (0,0,255), -1) #pixelpair e
+        cv_image = bridge.imgmsg_to_cv2(data, "bgr8")
+        cv2.circle(cv_image,(a[0],a[1]), 60, (0,0,255), 3) #pixelpair a
+        cv2.circle(cv_image,(b[0],b[1]), 60, (0,0,255), 3) #pixelpair b
+        cv2.circle(cv_image,(c[0],c[1]), 60, (0,0,255), 3) #pixelpair c
+        cv2.circle(cv_image,(d[0],d[1]), 60, (0,0,255), 3) #pixelpair d
+        cv2.circle(cv_image,(e[0],e[1]), 60, (0,0,255), 3) #pixelpair e
         basename = "log_image"
         suffix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
         filename = "_".join([basename, suffix])
@@ -81,36 +81,39 @@ def depth_callback(data):
         #f = 500 # focal length in pixels HD720 resolution ZED2
         f = 700 # focal length ZED1
         b = 0.12 # baseline
-        Pxi = int(xc_pix)
-        Pyi = int(yc_pix)
       
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(data, desired_encoding='32FC1')
 
         #pixelpair a
-        coo_az = cv_image[a[1], a[0]]*1000*(yci-a[1])/f
-        coo_ay = cv_image[a[1], a[0]]*1000*(xci-a[0])/f
-        coo_ax = np.sqrt((cv_image[a[1], a[0]]*1000)**2 - coo_ay**2 - coo_az**2) 
+        if math.isnan(cv_image[a[1], a[0]]) == False and math.isinf(cv_image[a[1], a[0]]) == False: 
+            coo_az = cv_image[a[1], a[0]]*1000*(yci-a[1])/f
+            coo_ay = cv_image[a[1], a[0]]*1000*(xci-a[0])/f
+            coo_ax = np.sqrt((cv_image[a[1], a[0]]*1000)**2 - coo_ay**2 - coo_az**2) 
 
         #pixelpair b
-        coo_bz = cv_image[b[1], b[0]]*1000*(yci-b[1])/f
-        coo_by = cv_image[b[1], b[0]]*1000*(xci-b[0])/f
-        coo_bx = np.sqrt((cv_image[b[1], b[0]]*1000)**2 - coo_by**2 - coo_bz**2) 
+        if math.isnan(cv_image[b[1], b[0]]) == False and math.isinf(cv_image[b[1], b[0]]) == False: 
+            coo_bz = cv_image[b[1], b[0]]*1000*(yci-b[1])/f
+            coo_by = cv_image[b[1], b[0]]*1000*(xci-b[0])/f
+            coo_bx = np.sqrt((cv_image[b[1], b[0]]*1000)**2 - coo_by**2 - coo_bz**2) 
 
         #pixelpair c
-        coo_cz = cv_image[c[1], c[0]]*1000*(yci-c[1])/f
-        coo_cy = cv_image[c[1], c[0]]*1000*(xci-c[0])/f
-        coo_cx = np.sqrt((cv_image[c[1], c[0]]*1000)**2 - coo_cy**2 - coo_cz**2) 
+        if math.isnan(cv_image[c[1], c[0]]) == False and math.isinf(cv_image[c[1], c[0]]) == False: 
+            coo_cz = cv_image[c[1], c[0]]*1000*(yci-c[1])/f
+            coo_cy = cv_image[c[1], c[0]]*1000*(xci-c[0])/f
+            coo_cx = np.sqrt((cv_image[c[1], c[0]]*1000)**2 - coo_cy**2 - coo_cz**2) 
 
         #pixelpair d
-        coo_dz = cv_image[d[1], d[0]]*1000*(yci-d[1])/f
-        coo_dy = cv_image[d[1], d[0]]*1000*(xci-d[0])/f
-        coo_dx = np.sqrt((cv_image[d[1], d[0]]*1000)**2 - coo_dy**2 - coo_dz**2) 
+        if math.isnan(cv_image[d[1], d[0]]) == False and math.isinf(cv_image[d[1], d[0]]) == False: 
+            coo_dz = cv_image[d[1], d[0]]*1000*(yci-d[1])/f
+            coo_dy = cv_image[d[1], d[0]]*1000*(xci-d[0])/f
+            coo_dx = np.sqrt((cv_image[d[1], d[0]]*1000)**2 - coo_dy**2 - coo_dz**2) 
 
         #pixelpair e
-        coo_ez = cv_image[e[1], e[0]]*1000*(yci-e[1])/f
-        coo_ey = cv_image[e[1], e[0]]*1000*(xci-e[0])/f
-        coo_ex = np.sqrt((cv_image[e[1], e[0]]*1000)**2 - coo_ey**2 - coo_ez**2) 
+        if math.isnan(cv_image[e[1], e[0]]) == False and math.isinf(cv_image[e[1], e[0]]) == False: 
+            coo_ez = cv_image[e[1], e[0]]*1000*(yci-e[1])/f
+            coo_ey = cv_image[e[1], e[0]]*1000*(xci-e[0])/f
+            coo_ex = np.sqrt((cv_image[e[1], e[0]]*1000)**2 - coo_ey**2 - coo_ez**2) 
   
         retrieve_depth = False
         
@@ -159,7 +162,7 @@ def main():
     rospy.wait_for_service('go_to_target')
     rospy.wait_for_service('get_pos')
 
-    directory = '/home/jetson/run_inf_jet'
+    directory = '/home/jetson/hey'
     os.chdir(directory)
 
     rospy.Subscriber('/zed/zed_node/left/image_rect_color',Image,callback)

@@ -8,6 +8,7 @@ import roslib
 roslib.load_manifest('dl_control')
 import rospy
 from std_msgs.msg import Float32MultiArray
+from std_msgs.msg import Bool
 
 
 
@@ -17,33 +18,46 @@ class Joint_State():
         self.alpha = None
         self.beta = None
         self.gamma = None
+        self.done = None
+        self.done_base = None
 
     def callback_arm(self, data):
-        self.alpha = data.data[0]
-        self.beta = data.data[1]
-        self.gamma = data.data[2]
+        self.alpha = data.data[1]
+        self.beta = data.data[2]
+        self.gamma = data.data[3]
+        #rospy.loginfo('Arm input data: %s %s %s', data.data[1], data.data[2], data.data[3])
         self.pub()
 
     def callback_bm(self, data):
         self.omega = data.data[0]
+        #rospy.loginfo('BM input: %s', data.data[0])
         self.pub()
 
+    def callback_done(self, data):
+        self.done = data.data
+
+    def callback_done_base(self, data):
+        self.done_base = data.data
+
     def pub(self):
-        if (self.omega and self.alpha and self.beta and self.gamma) != None:
+        print(self.omega, self.alpha, self.beta, self.gamma, self.done, self.done_base)
+        if (self.done==False or self.done_base == False) and (self.omega != None and self.alpha != None and self.beta != None and self.gamma != None): 
+            print('Publishing joint state', self.omega, self.alpha, self.beta, self.gamma, self.done)
             pub_state = rospy.Publisher('Joint_State_uc', Float32MultiArray, queue_size=1)
             msg = Float32MultiArray()
-            msg.data = [self.omega,self.alpha,self.beta,self.gamma]
+            msg.data = [self.omega, self.alpha, self.beta, self.gamma]
             pub_state.publish(msg)
 
 
 
 def main():
-    rospy.init_node('comm_kinematics', anonymous=False)
+    rospy.init_node('middle_kinematics', anonymous=False)
 
     jointstate = Joint_State()
     rospy.Subscriber('base_motor_state', Float32MultiArray, jointstate.callback_bm)
     rospy.Subscriber('arm_states', Float32MultiArray, jointstate.callback_arm)
-
+    rospy.Subscriber('finished', Bool, jointstate.callback_done)
+    rospy.Subscriber('finished_base', Bool, jointstate.callback_done_base)
    
 
 

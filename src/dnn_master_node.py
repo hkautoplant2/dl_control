@@ -25,17 +25,20 @@ from std_msgs.msg import Float32MultiArray
 
 from dl_control.srv import*
 
+#TODO check local variable right pos
+
 right_pos = False
 retrieve_depth = False
 xc_pix = None
 yc_pix = None
-depth_done = False
 X = 0
 Y = 0
 Z = 0
 depth_counter = 0
+found_area = False
 
 def run_DNN(pic_data):
+        global found_area
         p2 = subprocess.Popen(["bash", "/home/jetson/catkin_ws/src/dl_control/src/shell_remove.sh"])
         (output2, err2) = p2.communicate()
         p2.status = p2.wait()
@@ -72,7 +75,7 @@ def read_file():
                 entry = line.split()
                 print(type(line))
                 if entry:
-                    if entry[0]=="stone":
+                    if entry[0]=="mineral":
 		        x1=float(entry[4])
 	                y1=float(entry[5])
 		        x2=float(entry[6])
@@ -87,16 +90,17 @@ def read_file():
 
 
 def callback(data):
-    global right_pos, retrieve_depth, xc_pix, yc_pix, depth_done  
+    global right_pos, retrieve_depth, xc_pix, yc_pix
     time.sleep(0.5)
     if len(data.data)==3686400 and right_pos == True:
         print('in callback')
         right_pos =False
-        #xc, yc = run_DNN(data)
-        xc = 640
-        yc = 360
+        xc, yc = run_DNN(data)
+        #xc = 840
+        #yc = 160
         xc_pix = int(xc)
         yc_pix = int(yc)
+        time.sleep(0.1)
         retrieve_depth = True   #Let the depth image callback know we have pixels to calculate on
         
         print('callback done, target pixels:  ', xc, yc)
@@ -104,12 +108,17 @@ def callback(data):
         #time.sleep(1)
 
 def depth_callback(data):
-    global right_pos, retrieve_depth, xc_pix, yc_pix, depth_done, X, Y, Z 
+    global right_pos, retrieve_depth, xc_pix, yc_pix, X, Y, Z, depth_counter
     
     pub_coord = rospy.Publisher('coord', Float32MultiArray, queue_size=1)
-    pub_counter = rospy.Publisher('depth_counter', Bool, queue_size=1)
+    pub_break = rospy.Publisher('dnn_break', Bool, queue_size=1)
 
-    if retrieve_depth == True:
+    if found_area == False and retrieve_depth == True:
+        print('NO AREA FOUND IN IMAGE: ')
+        retrieve_depth = False
+        right_pos =False
+        pub_break.publish(True)
+    elif retrieve_depth == True:
         xci = data.width / 2
         yci = data.height / 2
         #f = 500 # focal length in pixels HD720 resolution ZED2
@@ -121,6 +130,10 @@ def depth_callback(data):
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(data, desired_encoding='32FC1')
         print('Is Nan: ', math.isnan(cv_image[Pyi, Pxi]), math.isinf(cv_image[Pyi, Pxi]), 'retrieve depth: ', retrieve_depth)
+
+        area = cv_image[Pyi-20:Pyi+20, Pxi-20:Pxi+20]
+        area = np.ma.masked_invalid(area).mean()
+        print('CV Image', area)
 
         R = cv_image[Pyi, Pxi]*1000 #Scale to millimeters
         if math.isnan(cv_image[Pyi, Pxi]) == False and math.isinf(cv_image[Pyi, Pxi]) == False and retrieve_depth:
@@ -137,17 +150,16 @@ def depth_callback(data):
 
             coord_fma = Float32MultiArray(data=[Pxc, Pyc, Pzc])
             pub_coord.publish(coord_fma)
-            depth_done = True
         elif retrieve_depth:
             retrieve_depth = True
-            pub_counter.publish(True)
-            depth_done = True
-            if depth_counter > 45:
+            depth_counter = depth_counter + 1
+            if depth_counter > 100:
                 retrieve_depth = False
+                depth_counter = 0
+                right_pos =False
+                pub_break.publish(True)
             
-def countdepth_callback(data):
-    global depth_counter
-    depth_counter = depth_counter + 1
+
         
 
 def callback_bool(data):
@@ -159,7 +171,7 @@ def callback_bool(data):
       right_pos = True
     else:
       right_pos = False
-    print('callback bool right_pos: ', right_pos)
+    print('----------callback bool right_pos: ', right_pos, '------------')
     #return right_pos
 
 def main():
@@ -171,7 +183,6 @@ def main():
     image_sub = rospy.Subscriber('/zed/zed_node/left/image_rect_color',Image,callback)
     bp_sub = rospy.Subscriber("arm_BP", Bool, callback_bool)
     depth_sub = rospy.Subscriber('/zed/zed_node/depth/depth_registered',Image, depth_callback)
-    rospy.Subscriber('/depth_counter', Bool, countdepth_callback)
 
 
 

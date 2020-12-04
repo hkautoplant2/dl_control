@@ -17,14 +17,14 @@ from dl_control.srv import GoToTarget,GoToTargetRequest,GoToTargetResponse
 from dl_control.srv import GetPos,GetPosRequest,GetPosResponse
 UC_finished = False
 stop_publishing_joints = False
-
+UC_base_finished = False
 
 
 
 
 recieved_angles = False
-stop_publishing_joints = False
-UC_finished = False
+
+
 x_current = 0
 y_current = 0
 z_current = 0
@@ -45,9 +45,18 @@ def stop_pub_joints_cb(msg):
         #print("STOP publishing joints")
         stop_publishing_joints = True
 
+def finished_base_cb(msg):
+  
+    global UC_base_finished
+    if msg.data == False:
+        UC_base_finished = False
+    else:
+        UC_base_finished = True
+
 
 def finished_cb(msg):
     global UC_finished
+    
     if msg.data == False:
         UC_finished = False
     else:
@@ -74,23 +83,23 @@ def create_JointMsg(angles):
 def publish_msg2(msg,pub):
     
     if stop_publishing_joints == True:
-        #print("stop publishing joints")
+        print("stop publishing joints")
         return
     else:
-        #print("publishing to UC")
+        print("publishing to UC")
         rospy.sleep(0.4)
         pub.publish(msg)
         publish_msg2(msg,pub)
 # recursiv function, reads angles from UC until finished is true
 def read_sensor():
 
-    if UC_finished == True:
-        #print("UC done")
+    if UC_finished == True and UC_base_finished == True:
+        print("UCs done")
         return
     else:
         #print("UC finished topic=", UC_finished)
-        rospy.sleep(0.1)
-        #print("reading sensor")
+        rospy.sleep(0.4)
+        print("reading sensor")
         read_sensor()
 
 def convert_gamma(gamma):
@@ -206,7 +215,7 @@ def go_to_target(req):
     # set dimenstion of the Float32MultiArray
 
     # create the topic for the uc
-    pub = rospy.Publisher("joint_IK", Float32MultiArray,queue_size = 1)
+    pub = rospy.Publisher("joint_IK", Float32MultiArray,queue_size = 10)
     target_angles = [omega,alpha,beta,gamma]
     joint_msg = create_JointMsg(target_angles)
 
@@ -232,7 +241,9 @@ def go_to_target(req):
 
 
     print("goal angles=",[omega,alpha,beta,gamma])
-    x_curent,y_curent,z_curent = FK()
+    x_current,y_current,z_current = FK()
+    print('current', x_current,y_current,z_current)
+    reset_variables()
     return x_current,y_current,z_current
 
 def FK_cb(msg):
@@ -307,12 +318,13 @@ def FK():
     stop_publishing_joints_sub = rospy.Subscriber("publish_joint",Bool,stop_pub_joints_cb)
 
 
-    joint_sensor_sub = rospy.Subscriber("Joint_State_uc",Float32MultiArray,FK_cb)
+    #joint_sensor_sub = rospy.Subscriber("Joint_State_uc",Float32MultiArray,FK_cb)
     finished_sub = rospy.Subscriber("finished",Bool,finished_cb)
-    rospy.wait_for_message("Joint_State_uc",Float32MultiArray)
+    finished_base_sub = rospy.Subscriber("finished_base",Bool,finished_base_cb)
+    #rospy.wait_for_message("Joint_State_uc",Float32MultiArray)
     print("read sensor data")
     read_sensor()
-
+    print("done reading sensor")
 
 
     return x_current,y_current,z_current
