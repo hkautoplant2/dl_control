@@ -354,9 +354,9 @@ def get_pos(msg):
 
 def FK_IK_server():
 
-    sub_stop = rospy.Subscriber("publish_joint_master",Bool,stop_pub_joints_cb)
+    sub_stop = rospy.Subscriber("publish_joint_master",Bool,stop_pub_joints_cb) #
 
-    sub_joints = rospy.Subscriber("Joint_State_uc",Float32MultiArray,FK_cb)
+    sub_joints = rospy.Subscriber("Joint_State_uc",Float32MultiArray,FK_cb) #From uC
 
 
     rospy.init_node("IK_FK_node")
