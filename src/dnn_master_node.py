@@ -138,17 +138,15 @@ def depth_callback(data):
         cv_image = bridge.imgmsg_to_cv2(data, desired_encoding='32FC1')
         print('Is Nan: ', math.isnan(cv_image[Pyi, Pxi]), math.isinf(cv_image[Pyi, Pxi]), 'retrieve depth: ', retrieve_depth)
 
-        r = 60
+        r = 40
         area = cv_image[Pyi-r:Pyi+r, Pxi-r:Pxi+r]
-        masked_area = []
-        for sublist in area:
-            for item in sublist:
-                masked_area.append(item)
-        masked_area = np.ma.masked_invalid(masked_area).mean()
-        print('Masked values', masked_area.data)
+        masked_area = np.ma.masked_invalid(area)
+        real_R = masked_area.compressed()
+        mean_R = real_R.mean()
 
-        R = cv_image[Pyi, Pxi]*1000 #Scale to millimeters
-        if math.isnan(cv_image[Pyi, Pxi]) == False and math.isinf(cv_image[Pyi, Pxi]) == False and retrieve_depth:
+        R = mean_R*1000 #Scale to millimeters
+        print('R', R)
+        if len(real_R) != 0 and retrieve_depth:
             retrieve_depth = False
             print('Pxi: ', Pxi, 'Pyi: ', Pyi)
             Pypc = xci-Pxi 

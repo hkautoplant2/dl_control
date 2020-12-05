@@ -59,6 +59,8 @@ def main():
 
     rate = rospy.Rate(2)
 
+    arm = Arm()
+
     rospy.wait_for_service('go_to_target')
     rospy.wait_for_service('get_pos')
     goto = rospy.ServiceProxy('go_to_target',GoToTarget)
@@ -70,10 +72,10 @@ def main():
     rospy.Subscriber('/arm_BP', Bool, arm.bp_callback)
     rospy.Subscriber('/dnn_break', Bool, arm.break_callback)
 
-    arm = Arm()
+    
 
-    A = [1900, 150, 1000]
-    B = [1800, -700, 1000]
+    A = [1900, 150, 900]
+    B = [1800, -700, 900]
     C = [2200, 0, 1200] 
 
     base_poses = [A, B, C]
@@ -94,7 +96,7 @@ def main():
                     resp = goto(BP[0], BP[1], BP[2])
                     response = resp
                     print 'Current position: ', response.x_current, response.y_current, response.z_current
-                    time.sleep(2)
+                    time.sleep(3)
                     pub_BP.publish(True)
                     waiting = True
                 
@@ -134,7 +136,7 @@ def main():
                         break 
                     
                     rate.sleep()
-        print('code done, wait for rate', i, waiting)
+        print('code done, wait for rate', waiting)
         rate.sleep()
     
     rospy.spin()
