@@ -56,147 +56,90 @@ def transform(current, camera):
 
 def main():
     rospy.init_node('master_node', anonymous=False)
-    #rate = rospy.Rate(0.015)
+
     rate = rospy.Rate(2)
-    inrate = rospy.Rate(2)
+
     rospy.wait_for_service('go_to_target')
     rospy.wait_for_service('get_pos')
-
     goto = rospy.ServiceProxy('go_to_target',GoToTarget)
     getpos = rospy.ServiceProxy("get_pos",GetPos)
 
     pub_BP = rospy.Publisher('arm_BP', Bool, queue_size=1)
 
-    arm = Arm()
-
     rospy.Subscriber('/coord',Float32MultiArray,arm.coord_callback)
     rospy.Subscriber('/arm_BP', Bool, arm.bp_callback)
     rospy.Subscriber('/dnn_break', Bool, arm.break_callback)
 
+    arm = Arm()
+
     A = [1900, 150, 1000]
     B = [1800, -700, 1000]
+    C = [2200, 0, 1200] 
 
+    base_poses = [A, B, C]
+    states = ['A', 'B', 'C']
  
-    pub_BP.publish(False)
     print('Starting sequence, publish False')
-    time.sleep(3)
-    
+    time.sleep(1)
+    pub_BP.publish(False)
     waiting = False
-    i = 0
 
     while not rospy.is_shutdown():
-        print('-----------Start of while loop---------------')
-        if i == 0:
-            if not waiting:
-                print('State 0 = A, moving to BP A')
-                rospy.wait_for_service('go_to_target')
-                resp = goto(A[0], A[1], A[2])
-                response = resp
-                print('publish base A position True, response: ', response.x_current, response.y_current, response.z_current)
-                time.sleep(2)
-                pub_BP.publish(True)
-                waiting = True
-            while not rospy.is_shutdown() and i == 0 and waiting:
-                if arm.coord_done == True:
-                    arm.coord_done = False
-                    pub_BP.publish(False)
-                    print( "Coordinates from camera: ", arm.coord )
-                    XA, YA, ZA = transform([response.x_current, response.y_current, response.z_current], arm.coord)
-                    #XA, YA, ZA = transform([2200, -200, 1100], arm.coord)
-                    print("Target/spot coordinates for end-effector: ", XA, YA, ZA )
-                    if (1500 <= XA <= 3000) and (ZA >= 220):
-                        rospy.wait_for_service('go_to_target')
-                        response = goto(XA, YA, ZA)
-                        print('Reached target spot, performing plantation...')
-                        time.sleep(7)
-                        print('Plantation done, moving back to A')
-                        rospy.wait_for_service('go_to_target')
-                        response = goto(A[0], A[1], A[2])
-                        i = 1 
-                        waiting = False
-                        break
-                    else: 
-                        print('Target area was out of bound, staying in A')
-                        i = 1 
+        print('*****************Start of plantation loop*********************')
+        for state, BP in enumerate(base_poses):
+            if not rospy.is_shutdown():
+                if not waiting:
+                    print 'State', states[state], ':', BP, '---------------------'
+                    rospy.wait_for_service('go_to_target')
+                    resp = goto(BP[0], BP[1], BP[2])
+                    response = resp
+                    print 'Current position: ', response.x_current, response.y_current, response.z_current
+                    time.sleep(2)
+                    pub_BP.publish(True)
+                    waiting = True
+                
+                while not rospy.is_shutdown() and waiting:
+                    if arm.coord_done == True:
+                        arm.coord_done = False
+                        pub_BP.publish(False)
+                        print( "Coordinates from camera: ", arm.coord )
+                        Xnew, Ynew, Znew = transform([response.x_current, response.y_current, response.z_current], arm.coord)
+                        #XA, YA, ZA = transform([2200, -200, 1100], arm.coord)
+                        print("Target/spot coordinates for end-effector: ", Xnew, Ynew, Znew )
+                        if (1500 <= Xnew <= 3000) and (Znew >= 220):
+                            rospy.wait_for_service('go_to_target')
+                            response = goto(Xnew, Ynew, Znew)
+                            print('Reached target spot, performing plantation...')
+                            time.sleep(7)
+                            print('Plantation done, moving back to BP')
+                            rospy.wait_for_service('go_to_target')
+                            response = goto(BP[0], BP[1], BP[2])
+                            waiting = False
+                            break
+                        else: 
+                            print('Target area was out of bound, staying in position')
+                            pub_BP.publish(False)
+                            arm.dnn_break = False
+                            waiting = False
+                            arm.coord_done = False
+                            time.sleep(1)
+                            break
+                    elif arm.dnn_break:
+                        print('Depth not found, staying in position')
                         pub_BP.publish(False)
                         arm.dnn_break = False
                         waiting = False
                         arm.coord_done = False
                         time.sleep(1)
-                        break
-                elif arm.dnn_break:
-                    print('Depth not found, staying A')
-                    i = 1
-                    pub_BP.publish(False)
-                    arm.dnn_break = False
-                    waiting = False
-                    arm.coord_done = False
-                    time.sleep(1)
-                    break 
-                   
-                rate.sleep()
+                        break 
                     
-
-        
-        elif i == 1:
-            if not waiting:
-                print('State 1 = B, moving to BP B')
-                rospy.wait_for_service('go_to_target')
-                resp = goto(B[0], B[1], B[2])
-                response = resp
-                print('publish base B position True, response: ', response.x_current, response.y_current, response.z_current)
-                time.sleep(2)
-                pub_BP.publish(True)
-                waiting = True
-            while not rospy.is_shutdown() and i == 1 and waiting:
-                if arm.coord_done == True:
-                    arm.coord_done = False
-                    pub_BP.publish(False)
-                    print( "Coordinates from camera: ", arm.coord )
-                    XB, YB, ZB = transform([response.x_current, response.y_current, response.z_current], arm.coord)
-                    print("Target/spot coordinates for end-effector: ", XB, YB, ZB )
-                    if 1500 <= XB <= 3000 and (ZB >= 220):
-                        rospy.wait_for_service('go_to_target')
-                        response = goto(XB, YB, ZB)
-                        print('Reached target spot, performing plantation...')
-                        time.sleep(7)
-                        print('Plantation done, moving back to B')
-                        rospy.wait_for_service('go_to_target')
-                        response = goto(B[0], B[1], B[2])
-                        i = 0 
-                        waiting = False
-                        break
-                    else: 
-                        print('Target area was out of bound, staying in B')
-                        i = 0 
-                        waiting = False
-                        pub_BP.publish(False)
-                        arm.dnn_break = False
-                        waiting = False
-                        arm.coord_done = False
-                        time.sleep(1)
-                        break
-                elif arm.dnn_break:
-                    print('Depth not found, staying in B')
-                    i = 0
-                    pub_BP.publish(False)
-                    waiting = False
-                    arm.dnn_break = False
-                    arm.coord_done = False
-                    time.sleep(1)
-                    break
-                    
-                rate.sleep()
-              
-        
+                    rate.sleep()
         print('code done, wait for rate', i, waiting)
         rate.sleep()
-
-
-
-
-
+    
     rospy.spin()
+
+
 
 if __name__ == '__main__':
     main()
