@@ -73,8 +73,8 @@ def main():
     rospy.Subscriber('/arm_BP', Bool, arm.bp_callback)
     rospy.Subscriber('/dnn_break', Bool, arm.break_callback)
 
-    A = [1900, 150, 800]
-    B = [1800, -700, 800]
+    A = [1900, 150, 1000]
+    B = [1800, -700, 1000]
 
  
     pub_BP.publish(False)
@@ -83,7 +83,7 @@ def main():
     
     waiting = False
     i = 0
-    #TODO Input guard for taking long time to find non NaN depth image
+
     while not rospy.is_shutdown():
         print('-----------Start of while loop---------------')
         if i == 0:
@@ -118,7 +118,6 @@ def main():
                     else: 
                         print('Target area was out of bound, staying in A')
                         i = 1 
-                        waiting = False
                         pub_BP.publish(False)
                         arm.dnn_break = False
                         waiting = False

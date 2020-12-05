@@ -37,13 +37,19 @@ Z = 0
 depth_counter = 0
 found_area = False
 
+    
+
 def run_DNN(pic_data):
+
+        directory = '/home/jetson/run_inf_jet'
+        os.chdir(directory)
         global found_area
         p2 = subprocess.Popen(["bash", "/home/jetson/catkin_ws/src/dl_control/src/shell_remove.sh"])
         (output2, err2) = p2.communicate()
         p2.status = p2.wait()
         bridge = CvBridge()
         cv_image = bridge.imgmsg_to_cv2(pic_data, "bgr8")
+        #cv2.circle(cv_image,(640, 360), 60, (0,0,255), 3)
         basename = "log_image"
         suffix = datetime.datetime.now().strftime("%y%m%d_%H%M%S")
         filename = "_".join([basename, suffix])
@@ -57,15 +63,18 @@ def run_DNN(pic_data):
         t = time.time() - t0
         print(t, 'Ran DNN')
        
-        found_area, x_c, y_c = read_file()
+        found_area, x_p, y_p = read_file()
         
+        directory_log = '/home/jetson/drawn_im'
+        os.chdir(directory_log)
+        cv2.circle(cv_image,(int(x_p), int(y_p)), 50, (0,0,255), 2)
+        cv2.imwrite(filename, cv_image)
         #time.sleep(10)
-        return x_c, y_c
+        return int(x_p), int(y_p)
 
 def read_file():
 #Program that search in each annotators file, after good area. Then it count the midpoint in the bounding box 
     txt_file = glob.glob('/home/jetson/res_inf_jet/*.txt')
-    
     with open(txt_file[0], "r") as f:  #The annotators file for the given image 
         if os.stat(txt_file[0]).st_size == 0:
             print('empty')
@@ -96,8 +105,6 @@ def callback(data):
         print('in callback')
         right_pos =False
         xc, yc = run_DNN(data)
-        #xc = 840
-        #yc = 160
         xc_pix = int(xc)
         yc_pix = int(yc)
         time.sleep(0.1)
@@ -131,9 +138,14 @@ def depth_callback(data):
         cv_image = bridge.imgmsg_to_cv2(data, desired_encoding='32FC1')
         print('Is Nan: ', math.isnan(cv_image[Pyi, Pxi]), math.isinf(cv_image[Pyi, Pxi]), 'retrieve depth: ', retrieve_depth)
 
-        area = cv_image[Pyi-20:Pyi+20, Pxi-20:Pxi+20]
-        area = np.ma.masked_invalid(area).mean()
-        print('CV Image', area)
+        r = 60
+        area = cv_image[Pyi-r:Pyi+r, Pxi-r:Pxi+r]
+        masked_area = []
+        for sublist in area:
+            for item in sublist:
+                masked_area.append(item)
+        masked_area = np.ma.masked_invalid(masked_area).mean()
+        print('Masked values', masked_area.data)
 
         R = cv_image[Pyi, Pxi]*1000 #Scale to millimeters
         if math.isnan(cv_image[Pyi, Pxi]) == False and math.isinf(cv_image[Pyi, Pxi]) == False and retrieve_depth:
@@ -177,8 +189,7 @@ def callback_bool(data):
 def main():
     rospy.init_node('dnn_master_node', anonymous=False)
 
-    directory = '/home/jetson/run_inf_jet'
-    os.chdir(directory)
+    
 
     image_sub = rospy.Subscriber('/zed/zed_node/left/image_rect_color',Image,callback)
     bp_sub = rospy.Subscriber("arm_BP", Bool, callback_bool)
